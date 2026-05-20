@@ -3,40 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modelo 3D - Sistema de Monitoreo Hídrico Flotante</title>
+  <title>Modelo 3D HD - Sistema de Monitoreo Hídrico Flotante</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div id="app">
-    <h2 class="sr-only">Modelo 3D interactivo — Sistema de Monitoreo Hídrico Flotante, Reserva Miraflores</h2>
+    <h2 class="sr-only">Modelo 3D interactivo del Sistema de Monitoreo Hídrico Flotante</h2>
     <div class="controls">
-      <button class="btn active" data-view="iso">Vista isométrica</button>
-      <button class="btn" data-view="front">Vista frontal</button>
-      <button class="btn" data-view="top">Vista superior</button>
-      <button class="btn" data-view="side">Vista lateral</button>
-      <button class="btn" id="animToggle">⏸ Pausar rotación</button>
+      <button class="btn active" data-view="iso">📐 Isométrica</button>
+      <button class="btn" data-view="front">⬇ Frontal</button>
+      <button class="btn" data-view="top">⬅ Superior</button>
+      <button class="btn" data-view="side">⬅ Lateral</button>
+      <button class="btn" data-view="rotate">🔄 Auto-rotar</button>
+      <button class="btn" id="lightToggle">💡 Iluminación</button>
     </div>
-    <div class="info-bar" id="infobar">Arrastra para rotar · Rueda para zoom</div>
-    <canvas id="c" width="680" height="400" style="width:100%;"></canvas>
+    <div class="info-bar" id="infobar">Arrastra para rotar · Rueda para zoom · Doble-clic para vista frontal</div>
+    <canvas id="c" width="680" height="500"></canvas>
     <div class="legend">
-      <div class="leg-item"><div class="leg-dot" style="background:#4A90D9"></div>Caja principal (agua)</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#888"></div>Zona electrónica</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#222"></div>Divisiones internas</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#E05252"></div>Sensor pH</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#52B452"></div>Sensor turbidez</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#E0C030"></div>Sensor TDS</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#E07830"></div>Sensor nivel</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#f5f5f5;border:1px solid #aaa"></div>Icopor (flotadores)</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#8B5E3C"></div>Tuberías PVC</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#C0C0C0"></div>Antena WiFi</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#8B3A3A"></div>Batería 12V</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#555"></div>Ancla / cuerda</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#4A90E2;"></div>Caja sensores</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#999;"></div>Electrónica</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#E05252;"></div>Sensor pH</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#52B452;"></div>Turbidez</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#E0C030;"></div>TDS</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#E07830;"></div>Nivel</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#f5f5f5;border:0.5px solid #999;"></div>Icopor</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#8B5E3C;"></div>Tuberías</div>
     </div>
-    <div class="specs">
-      <div class="spec-card"><div class="spec-val">45×35×28</div><div class="spec-lbl">Dimensiones (cm)</div></div>
-      <div class="spec-card"><div class="spec-val">49.4 kg</div><div class="spec-lbl">Peso total</div></div>
-      <div class="spec-card"><div class="spec-val">317.7 kg</div><div class="spec-lbl">Capacidad flotante</div></div>
-      <div class="spec-card"><div class="spec-val">16.1 cm</div><div class="spec-lbl">Draft (sumergido)</div></div>
+    <div class="stats">
+      <div class="stat-card"><div class="stat-val">45×35×28</div><div class="stat-lbl">Dimensiones (cm)</div></div>
+      <div class="stat-card"><div class="stat-val">49.4 kg</div><div class="stat-lbl">Peso total</div></div>
+      <div class="stat-card"><div class="stat-val">317.7 kg</div><div class="stat-lbl">Capacidad flotante</div></div>
+      <div class="stat-card"><div class="stat-val">16.1 cm</div><div class="stat-lbl">Profundidad (draft)</div></div>
     </div>
   </div>
 
