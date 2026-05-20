@@ -38,6 +38,9 @@ class Visualizer3D {
     this.clickableParts = [];
     this.hoveredPart = null;
     this.selectedPart = null;
+    this.mouseX = -1;
+    this.mouseY = -1;
+    this.infoTimeout = null;
     
     this.init();
   }
@@ -127,9 +130,9 @@ class Visualizer3D {
       this.lastMX = e.offsetX;
       this.lastMY = e.offsetY;
     } else {
-      // Detectar hover sobre partes
-      this.hoveredPart = this.detectPart(e.offsetX, e.offsetY);
-      this.canvas.style.cursor = this.hoveredPart ? 'pointer' : 'grab';
+      // Almacenar posición del mouse
+      this.mouseX = e.offsetX;
+      this.mouseY = e.offsetY;
     }
   }
 
@@ -147,9 +150,8 @@ class Visualizer3D {
   onCanvasClick(e) {
     if (this.dragging) return;
     
-    const part = this.detectPart(e.offsetX, e.offsetY);
+    const part = this.detectPart(this.mouseX, this.mouseY);
     if (part) {
-      this.selectedPart = part;
       this.showPartInfo(part);
     }
   }
@@ -185,17 +187,17 @@ class Visualizer3D {
 
   // Detectar si se hizo clic en una parte
   detectPart(mouseX, mouseY) {
-    // Buscar de atrás hacia adelante (profundidad)
+    // Buscar de adelante hacia atrás (respetando profundidad)
     for (let i = this.clickableParts.length - 1; i >= 0; i--) {
       const part = this.clickableParts[i];
-      if (this.pointInPolygon(mouseX, mouseY, part.vertices)) {
+      if (this.pointInPolygon(mouseX, mouseY, part.pts)) {
         return part;
       }
     }
     return null;
   }
 
-  // Verificar si un punto está dentro de un polígono
+  // Verificar si un punto está dentro de un polígono (algoritmo ray casting)
   pointInPolygon(x, y, vertices) {
     let inside = false;
     for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
@@ -212,10 +214,14 @@ class Visualizer3D {
   showPartInfo(part) {
     const infoBar = document.getElementById('infobar');
     infoBar.textContent = `✓ ${part.name}`;
-    infoBar.style.color = part.color || 'var(--color-text-secondary)';
+    infoBar.style.color = '#E05252';
     infoBar.style.fontWeight = 'bold';
     
-    setTimeout(() => {
+    // Cancelar timeout anterior si existe
+    if (this.infoTimeout) clearTimeout(this.infoTimeout);
+    
+    // Restaurar después de 3 segundos
+    this.infoTimeout = setTimeout(() => {
       infoBar.textContent = 'Arrastra para rotar · Rueda para zoom · Doble-clic para vista frontal';
       infoBar.style.fontWeight = 'normal';
       infoBar.style.color = 'var(--color-text-secondary)';
@@ -281,7 +287,7 @@ class Visualizer3D {
     return this.shadeColor(baseColor, 0.4 + bright * 0.6);
   }
 
-  // Crear cara poligonal con info de clickabilidad
+  // Crear cara poligonal
   face(pts, color, alpha = 1, partName = null) {
     if (pts.length < 3) return null;
     
@@ -300,12 +306,12 @@ class Visualizer3D {
     };
 
     // Registrar para clickabilidad si tiene nombre
-    if (partName) {
+    if (partName && partName.trim()) {
       this.clickableParts.push({
         name: partName,
-        vertices: pts,
+        pts: pts,
         color: color,
-        face: face
+        depth: avgDepth
       });
     }
 
@@ -347,12 +353,12 @@ class Visualizer3D {
     ].map(v => this.project(v[0], v[1], v[2]));
 
     return [
-      this.face([verts[0], verts[1], verts[2], verts[3]], col, alpha, partName ? `${partName} (frente)` : null),
-      this.face([verts[4], verts[5], verts[6], verts[7]], col, alpha, partName ? `${partName} (atrás)` : null),
-      this.face([verts[0], verts[1], verts[5], verts[4]], col, alpha, partName ? `${partName} (abajo)` : null),
-      this.face([verts[2], verts[3], verts[7], verts[6]], col, alpha, partName ? `${partName} (arriba)` : null),
-      this.face([verts[0], verts[3], verts[7], verts[4]], col, alpha, partName ? `${partName} (izquierda)` : null),
-      this.face([verts[1], verts[2], verts[6], verts[5]], col, alpha, partName ? `${partName} (derecha)` : null),
+      this.face([verts[0], verts[1], verts[2], verts[3]], col, alpha, partName),
+      this.face([verts[4], verts[5], verts[6], verts[7]], col, alpha, partName),
+      this.face([verts[0], verts[1], verts[5], verts[4]], col, alpha, partName),
+      this.face([verts[2], verts[3], verts[7], verts[6]], col, alpha, partName),
+      this.face([verts[0], verts[3], verts[7], verts[4]], col, alpha, partName),
+      this.face([verts[1], verts[2], verts[6], verts[5]], col, alpha, partName),
     ].filter(f => f);
   }
 
@@ -407,37 +413,37 @@ class Visualizer3D {
     faces.push(...this.cylinder(0, 500 * S, 0, 60 * S * 0.4, 30 * S, '#666', 16, 'Polea de Anclaje'));
     faces.push(...this.cylinder(0, 350 * S, 0, 6 * S, 170 * S, '#8B7355', 12, 'Cuerda de Amarre'));
 
-    // CAJA PRINCIPAL - Zona de Sensores (Azul)
+    // CAJA PRINCIPAL
     faces.push(...this.box(0, 60 * S, 0, 450 * S, 280 * S, 350 * S, '#4A90E2', 0.88, 'Caja Principal'));
 
     // DIVISIONES INTERNAS
     faces.push(...this.box(0, 60 * S, 0, 450 * S, 5 * S, 350 * S, '#2a2a2a', 0.95, 'Divisor Horizontal'));
     faces.push(...this.box(0, 60 * S, 0, 5 * S, 280 * S, 350 * S, '#2a2a2a', 0.95, 'Divisor Vertical'));
 
-    // SENSORES DE AGUA - Cilindros grandes
+    // SENSORES
     faces.push(...this.cylinder(-100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#E05252', 20, 'Sensor pH'));
     faces.push(...this.cylinder(100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#52B452', 20, 'Sensor Turbidez'));
     faces.push(...this.cylinder(-100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E0C030', 20, 'Sensor TDS'));
     faces.push(...this.cylinder(100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E07830', 20, 'Sensor Nivel'));
 
-    // TUBERÍAS DE ENTRADA - Principal y secundarias
+    // TUBERÍAS
     faces.push(...this.cylinder(0, 220 * S, 0, 10 * S, 85 * S, '#8B5E3C', 16, 'Tubería Principal'));
     faces.push(...this.cylinder(-80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 12, 'Tubería Auxiliar Izq'));
     faces.push(...this.cylinder(80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 12, 'Tubería Auxiliar Der'));
 
-    // ZONA ELECTRÓNICA - Caja superior gris
+    // ZONA ELECTRÓNICA
     faces.push(...this.box(0, -230 * S, 0, 450 * S, 120 * S, 350 * S, '#999999', 0.9, 'Zona Electrónica'));
 
-    // MICROCONTROLADOR - ESP32
+    // ESP32
     faces.push(...this.box(-100 * S, -230 * S, -80 * S, 50 * S, 30 * S, 80 * S, '#1a1a1a', 1, 'Microcontrolador ESP32'));
 
-    // BATERÍA 12V
+    // BATERÍA
     faces.push(...this.box(80 * S, -230 * S, 80 * S, 80 * S, 50 * S, 60 * S, '#8B3A3A', 1, 'Batería 12V'));
 
-    // ANTENA WiFi
+    // ANTENA
     faces.push(...this.cylinder(-200 * S, -310 * S, -150 * S, 5 * S, 160 * S, '#C0C0C0', 12, 'Antena WiFi'));
 
-    // LEDs de Estado
+    // LEDs
     const ledColors = ['#E05252', '#52B452', '#E0C030', '#4A90E2'];
     const ledNames = ['LED pH', 'LED Turbidez', 'LED TDS', 'LED WiFi'];
     const ledPos = [[-80, -80], [-30, -80], [-80, 80], [-30, 80]];
@@ -445,7 +451,7 @@ class Visualizer3D {
       faces.push(...this.cylinder(lx * S, -270 * S, lz * S, 10 * S, 8 * S, ledColors[i], 16, ledNames[i]));
     });
 
-    // LÍNEA DE FLOTACIÓN - Visual reference
+    // LÍNEA DE FLOTACIÓN
     faces.push(...this.box(0, -60 * S, 0, 455 * S, 4 * S, 355 * S, '#1a6bb5', 0.4, 'Línea de Flotación'));
 
     return faces;
@@ -481,22 +487,28 @@ class Visualizer3D {
     faces.sort((a, b) => b.depth - a.depth);
     faces.forEach(f => this.drawFace(f));
 
+    // Detectar hover DESPUÉS de renderizar
+    if (this.mouseX >= 0 && this.mouseY >= 0) {
+      this.hoveredPart = this.detectPart(this.mouseX, this.mouseY);
+      this.canvas.style.cursor = this.hoveredPart ? 'pointer' : 'grab';
+    }
+
     // Resaltar parte hovereada
     if (this.hoveredPart) {
       this.ctx.save();
-      this.ctx.strokeStyle = 'rgba(255,200,0,0.8)';
-      this.ctx.lineWidth = 2;
+      this.ctx.strokeStyle = 'rgba(255,200,0,0.9)';
+      this.ctx.lineWidth = 2.5;
       this.ctx.beginPath();
-      this.ctx.moveTo(this.hoveredPart.vertices[0].sx, this.hoveredPart.vertices[0].sy);
-      for (let i = 1; i < this.hoveredPart.vertices.length; i++) {
-        this.ctx.lineTo(this.hoveredPart.vertices[i].sx, this.hoveredPart.vertices[i].sy);
+      this.ctx.moveTo(this.hoveredPart.pts[0].sx, this.hoveredPart.pts[0].sy);
+      for (let i = 1; i < this.hoveredPart.pts.length; i++) {
+        this.ctx.lineTo(this.hoveredPart.pts[i].sx, this.hoveredPart.pts[i].sy);
       }
       this.ctx.closePath();
       this.ctx.stroke();
       this.ctx.restore();
     }
 
-    // Etiquetas principales
+    // Etiquetas
     this.ctx.font = '12px var(--font-sans)';
     this.ctx.fillStyle = 'rgba(0,0,0,0.65)';
     const labels = [
@@ -511,13 +523,13 @@ class Visualizer3D {
       this.ctx.fillText(lb.text, p.sx, p.sy + 4);
     });
 
-    // Etiqueta de draft
+    // Draft label
     this.ctx.fillStyle = 'rgba(26,107,181,0.7)';
     this.ctx.font = '10px var(--font-sans)';
     this.ctx.textAlign = 'right';
     this.ctx.fillText('Draft: 16.1 cm', this.W - 30, 40);
 
-    // Instrucción de clickabilidad
+    // Help text
     this.ctx.fillStyle = 'rgba(100,100,100,0.5)';
     this.ctx.font = '9px var(--font-sans)';
     this.ctx.textAlign = 'left';
