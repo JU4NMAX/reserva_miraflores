@@ -1,6 +1,6 @@
 /**
- * Sistema de Monitoreo Hídrico Flotante - Visualizador 3D HD
- * Modelo interactivo con iluminación avanzada, zoom y vistas preestablecidas
+ * Sistema de Monitoreo Hídrico Flotante - Visualizador 3D HD Ultra
+ * Modelo interactivo con iluminación avanzada, detección de clics y nombres de partes
  */
 
 class Visualizer3D {
@@ -34,6 +34,11 @@ class Visualizer3D {
     // Factor de escala del modelo
     this.S = 0.5;
     
+    // Partes clickeables
+    this.clickableParts = [];
+    this.hoveredPart = null;
+    this.selectedPart = null;
+    
     this.init();
   }
 
@@ -58,6 +63,7 @@ class Visualizer3D {
     this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
     this.canvas.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
     this.canvas.addEventListener('dblclick', () => this.onDoubleClick());
+    this.canvas.addEventListener('click', (e) => this.onCanvasClick(e));
 
     // Touch support
     this.canvas.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
@@ -108,19 +114,23 @@ class Visualizer3D {
   onMouseLeave() {
     this.dragging = false;
     this.canvas.classList.remove('grabbing');
+    this.hoveredPart = null;
   }
 
   onMouseMove(e) {
-    if (!this.dragging) return;
-    
-    this.rotY += (e.offsetX - this.lastMX) * 0.008;
-    this.rotX += (e.offsetY - this.lastMY) * 0.008;
-    
-    // Limitar rotación vertical
-    this.rotX = Math.max(-1.2, Math.min(1.5, this.rotX));
-    
-    this.lastMX = e.offsetX;
-    this.lastMY = e.offsetY;
+    if (this.dragging) {
+      this.rotY += (e.offsetX - this.lastMX) * 0.008;
+      this.rotX += (e.offsetY - this.lastMY) * 0.008;
+      
+      this.rotX = Math.max(-1.2, Math.min(1.5, this.rotX));
+      
+      this.lastMX = e.offsetX;
+      this.lastMY = e.offsetY;
+    } else {
+      // Detectar hover sobre partes
+      this.hoveredPart = this.detectPart(e.offsetX, e.offsetY);
+      this.canvas.style.cursor = this.hoveredPart ? 'pointer' : 'grab';
+    }
   }
 
   onWheel(e) {
@@ -132,6 +142,16 @@ class Visualizer3D {
   onDoubleClick() {
     this.viewTarget = { rx: 0, ry: 0 };
     this.viewAnimating = true;
+  }
+
+  onCanvasClick(e) {
+    if (this.dragging) return;
+    
+    const part = this.detectPart(e.offsetX, e.offsetY);
+    if (part) {
+      this.selectedPart = part;
+      this.showPartInfo(part);
+    }
   }
 
   onTouchStart(e) {
@@ -163,6 +183,45 @@ class Visualizer3D {
     this.dragging = false;
   }
 
+  // Detectar si se hizo clic en una parte
+  detectPart(mouseX, mouseY) {
+    // Buscar de atrás hacia adelante (profundidad)
+    for (let i = this.clickableParts.length - 1; i >= 0; i--) {
+      const part = this.clickableParts[i];
+      if (this.pointInPolygon(mouseX, mouseY, part.vertices)) {
+        return part;
+      }
+    }
+    return null;
+  }
+
+  // Verificar si un punto está dentro de un polígono
+  pointInPolygon(x, y, vertices) {
+    let inside = false;
+    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+      const xi = vertices[i].sx, yi = vertices[i].sy;
+      const xj = vertices[j].sx, yj = vertices[j].sy;
+      
+      const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  // Mostrar información de la parte
+  showPartInfo(part) {
+    const infoBar = document.getElementById('infobar');
+    infoBar.textContent = `✓ ${part.name}`;
+    infoBar.style.color = part.color || 'var(--color-text-secondary)';
+    infoBar.style.fontWeight = 'bold';
+    
+    setTimeout(() => {
+      infoBar.textContent = 'Arrastra para rotar · Rueda para zoom · Doble-clic para vista frontal';
+      infoBar.style.fontWeight = 'normal';
+      infoBar.style.color = 'var(--color-text-secondary)';
+    }, 3000);
+  }
+
   // Proyección 3D a 2D
   project(x, y, z) {
     const cosX = Math.cos(this.rotX);
@@ -170,15 +229,12 @@ class Visualizer3D {
     const cosY = Math.cos(this.rotY);
     const sinY = Math.sin(this.rotY);
 
-    // Rotación X
     const y2 = y * cosX - z * sinX;
     const z2 = y * sinX + z * cosX;
 
-    // Rotación Y
     const x2 = x * cosY + z2 * sinY;
     const z3 = -x * sinY + z2 * cosY;
 
-    // Perspectiva
     const fov = 500;
     const pz = fov / (fov + z3 + 300);
 
@@ -225,22 +281,35 @@ class Visualizer3D {
     return this.shadeColor(baseColor, 0.4 + bright * 0.6);
   }
 
-  // Crear cara poligonal
-  face(pts, color, alpha = 1) {
+  // Crear cara poligonal con info de clickabilidad
+  face(pts, color, alpha = 1, partName = null) {
     if (pts.length < 3) return null;
     
     const avgDepth = pts.reduce((a, p) => a + p.depth, 0) / pts.length;
     const normal = this.calculateNormal(pts);
     
-    return {
+    const face = {
       pts,
       color,
       alpha,
       depth: avgDepth,
       nx: normal.x,
       ny: normal.y,
-      nz: normal.z
+      nz: normal.z,
+      name: partName
     };
+
+    // Registrar para clickabilidad si tiene nombre
+    if (partName) {
+      this.clickableParts.push({
+        name: partName,
+        vertices: pts,
+        color: color,
+        face: face
+      });
+    }
+
+    return face;
   }
 
   // Dibujar una cara
@@ -267,7 +336,7 @@ class Visualizer3D {
   }
 
   // Crear caja 3D
-  box(cx, cy, cz, w, h, d, col, alpha = 1) {
+  box(cx, cy, cz, w, h, d, col, alpha = 1, partName = null) {
     const x0 = cx - w / 2, x1 = cx + w / 2;
     const y0 = cy - h / 2, y1 = cy + h / 2;
     const z0 = cz - d / 2, z1 = cz + d / 2;
@@ -278,17 +347,17 @@ class Visualizer3D {
     ].map(v => this.project(v[0], v[1], v[2]));
 
     return [
-      this.face([verts[0], verts[1], verts[2], verts[3]], col, alpha),
-      this.face([verts[4], verts[5], verts[6], verts[7]], col, alpha),
-      this.face([verts[0], verts[1], verts[5], verts[4]], col, alpha),
-      this.face([verts[2], verts[3], verts[7], verts[6]], col, alpha),
-      this.face([verts[0], verts[3], verts[7], verts[4]], col, alpha),
-      this.face([verts[1], verts[2], verts[6], verts[5]], col, alpha),
+      this.face([verts[0], verts[1], verts[2], verts[3]], col, alpha, partName ? `${partName} (frente)` : null),
+      this.face([verts[4], verts[5], verts[6], verts[7]], col, alpha, partName ? `${partName} (atrás)` : null),
+      this.face([verts[0], verts[1], verts[5], verts[4]], col, alpha, partName ? `${partName} (abajo)` : null),
+      this.face([verts[2], verts[3], verts[7], verts[6]], col, alpha, partName ? `${partName} (arriba)` : null),
+      this.face([verts[0], verts[3], verts[7], verts[4]], col, alpha, partName ? `${partName} (izquierda)` : null),
+      this.face([verts[1], verts[2], verts[6], verts[5]], col, alpha, partName ? `${partName} (derecha)` : null),
     ].filter(f => f);
   }
 
   // Crear cilindro 3D
-  cylinder(cx, cy, cz, r, h, col, segs = 16) {
+  cylinder(cx, cy, cz, r, h, col, segs = 24, partName = null) {
     const faces = [];
     const y0 = cy - h / 2, y1 = cy + h / 2;
 
@@ -304,7 +373,7 @@ class Visualizer3D {
         this.project(cx + Math.cos(a0) * r, y1, cz + Math.sin(a0) * r),
       ];
       
-      const f = this.face(p, col, 1);
+      const f = this.face(p, col, 1, partName);
       if (f) faces.push(f);
     }
 
@@ -329,60 +398,64 @@ class Visualizer3D {
     const faces = [];
     const S = this.S;
 
-    // Icopor (3 bloques)
-    faces.push(...this.box(-150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#e8e8e8'));
-    faces.push(...this.box(0, 280 * S, 0, 100 * S, 100 * S, 350 * S, '#f0f0f0'));
-    faces.push(...this.box(150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#e8e8e8'));
+    // ICOPOR - 3 bloques flotadores
+    faces.push(...this.box(-150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#e8e8e8', 1, 'Flotador Izquierdo'));
+    faces.push(...this.box(0, 280 * S, 0, 100 * S, 100 * S, 350 * S, '#f0f0f0', 1, 'Flotador Central'));
+    faces.push(...this.box(150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#e8e8e8', 1, 'Flotador Derecho'));
 
-    // Ancla y cuerda
-    faces.push(...this.cylinder(0, 500 * S, 0, 60 * S * 0.4, 30 * S, '#666', 12));
-    faces.push(...this.cylinder(0, 350 * S, 0, 6 * S, 170 * S, '#8B7355'));
+    // SISTEMA DE ANCLAJE
+    faces.push(...this.cylinder(0, 500 * S, 0, 60 * S * 0.4, 30 * S, '#666', 16, 'Polea de Anclaje'));
+    faces.push(...this.cylinder(0, 350 * S, 0, 6 * S, 170 * S, '#8B7355', 12, 'Cuerda de Amarre'));
 
-    // Caja principal (sensores - azul)
-    faces.push(...this.box(0, 60 * S, 0, 450 * S, 280 * S, 350 * S, '#4A90E2', 0.88));
+    // CAJA PRINCIPAL - Zona de Sensores (Azul)
+    faces.push(...this.box(0, 60 * S, 0, 450 * S, 280 * S, 350 * S, '#4A90E2', 0.88, 'Caja Principal'));
 
-    // Divisiones internas
-    faces.push(...this.box(0, 60 * S, 0, 450 * S, 5 * S, 350 * S, '#2a2a2a', 0.95));
-    faces.push(...this.box(0, 60 * S, 0, 5 * S, 280 * S, 350 * S, '#2a2a2a', 0.95));
+    // DIVISIONES INTERNAS
+    faces.push(...this.box(0, 60 * S, 0, 450 * S, 5 * S, 350 * S, '#2a2a2a', 0.95, 'Divisor Horizontal'));
+    faces.push(...this.box(0, 60 * S, 0, 5 * S, 280 * S, 350 * S, '#2a2a2a', 0.95, 'Divisor Vertical'));
 
-    // Sensores (cilindros grandes)
-    faces.push(...this.cylinder(-100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#E05252')); // pH
-    faces.push(...this.cylinder(100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#52B452')); // Turbidez
-    faces.push(...this.cylinder(-100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E0C030')); // TDS
-    faces.push(...this.cylinder(100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E07830')); // Nivel
+    // SENSORES DE AGUA - Cilindros grandes
+    faces.push(...this.cylinder(-100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#E05252', 20, 'Sensor pH'));
+    faces.push(...this.cylinder(100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#52B452', 20, 'Sensor Turbidez'));
+    faces.push(...this.cylinder(-100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E0C030', 20, 'Sensor TDS'));
+    faces.push(...this.cylinder(100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E07830', 20, 'Sensor Nivel'));
 
-    // Tuberías entrada
-    faces.push(...this.cylinder(0, 220 * S, 0, 10 * S, 85 * S, '#8B5E3C', 12));
-    faces.push(...this.cylinder(-80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 10));
-    faces.push(...this.cylinder(80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 10));
+    // TUBERÍAS DE ENTRADA - Principal y secundarias
+    faces.push(...this.cylinder(0, 220 * S, 0, 10 * S, 85 * S, '#8B5E3C', 16, 'Tubería Principal'));
+    faces.push(...this.cylinder(-80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 12, 'Tubería Auxiliar Izq'));
+    faces.push(...this.cylinder(80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 12, 'Tubería Auxiliar Der'));
 
-    // Zona electrónica (gris arriba)
-    faces.push(...this.box(0, -230 * S, 0, 450 * S, 120 * S, 350 * S, '#999999', 0.9));
+    // ZONA ELECTRÓNICA - Caja superior gris
+    faces.push(...this.box(0, -230 * S, 0, 450 * S, 120 * S, 350 * S, '#999999', 0.9, 'Zona Electrónica'));
 
-    // ESP32
-    faces.push(...this.box(-100 * S, -230 * S, -80 * S, 50 * S, 30 * S, 80 * S, '#1a1a1a'));
+    // MICROCONTROLADOR - ESP32
+    faces.push(...this.box(-100 * S, -230 * S, -80 * S, 50 * S, 30 * S, 80 * S, '#1a1a1a', 1, 'Microcontrolador ESP32'));
 
-    // Batería
-    faces.push(...this.box(80 * S, -230 * S, 80 * S, 80 * S, 50 * S, 60 * S, '#8B3A3A'));
+    // BATERÍA 12V
+    faces.push(...this.box(80 * S, -230 * S, 80 * S, 80 * S, 50 * S, 60 * S, '#8B3A3A', 1, 'Batería 12V'));
 
-    // Antena WiFi
-    faces.push(...this.cylinder(-200 * S, -310 * S, -150 * S, 5 * S, 160 * S, '#C0C0C0'));
+    // ANTENA WiFi
+    faces.push(...this.cylinder(-200 * S, -310 * S, -150 * S, 5 * S, 160 * S, '#C0C0C0', 12, 'Antena WiFi'));
 
-    // LEDs
+    // LEDs de Estado
     const ledColors = ['#E05252', '#52B452', '#E0C030', '#4A90E2'];
+    const ledNames = ['LED pH', 'LED Turbidez', 'LED TDS', 'LED WiFi'];
     const ledPos = [[-80, -80], [-30, -80], [-80, 80], [-30, 80]];
     ledPos.forEach(([lx, lz], i) => {
-      faces.push(...this.cylinder(lx * S, -270 * S, lz * S, 10 * S, 8 * S, ledColors[i]));
+      faces.push(...this.cylinder(lx * S, -270 * S, lz * S, 10 * S, 8 * S, ledColors[i], 16, ledNames[i]));
     });
 
-    // Línea de flotación
-    faces.push(...this.box(0, -60 * S, 0, 455 * S, 4 * S, 355 * S, '#1a6bb5', 0.4));
+    // LÍNEA DE FLOTACIÓN - Visual reference
+    faces.push(...this.box(0, -60 * S, 0, 455 * S, 4 * S, 355 * S, '#1a6bb5', 0.4, 'Línea de Flotación'));
 
     return faces;
   }
 
   // Renderizar frame
   render() {
+    // Limpiar lista de partes clickeables
+    this.clickableParts = [];
+
     // Fondo con gradiente
     const grad = this.ctx.createLinearGradient(0, 0, 0, this.H);
     grad.addColorStop(0, 'rgba(240,245,250,1)');
@@ -408,7 +481,22 @@ class Visualizer3D {
     faces.sort((a, b) => b.depth - a.depth);
     faces.forEach(f => this.drawFace(f));
 
-    // Etiquetas
+    // Resaltar parte hovereada
+    if (this.hoveredPart) {
+      this.ctx.save();
+      this.ctx.strokeStyle = 'rgba(255,200,0,0.8)';
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.hoveredPart.vertices[0].sx, this.hoveredPart.vertices[0].sy);
+      for (let i = 1; i < this.hoveredPart.vertices.length; i++) {
+        this.ctx.lineTo(this.hoveredPart.vertices[i].sx, this.hoveredPart.vertices[i].sy);
+      }
+      this.ctx.closePath();
+      this.ctx.stroke();
+      this.ctx.restore();
+    }
+
+    // Etiquetas principales
     this.ctx.font = '12px var(--font-sans)';
     this.ctx.fillStyle = 'rgba(0,0,0,0.65)';
     const labels = [
@@ -428,6 +516,12 @@ class Visualizer3D {
     this.ctx.font = '10px var(--font-sans)';
     this.ctx.textAlign = 'right';
     this.ctx.fillText('Draft: 16.1 cm', this.W - 30, 40);
+
+    // Instrucción de clickabilidad
+    this.ctx.fillStyle = 'rgba(100,100,100,0.5)';
+    this.ctx.font = '9px var(--font-sans)';
+    this.ctx.textAlign = 'left';
+    this.ctx.fillText('Haz clic en cualquier parte para ver su nombre', 10, 25);
   }
 
   // Loop de renderizado
