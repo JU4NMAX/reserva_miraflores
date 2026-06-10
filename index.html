@@ -3,40 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modelo 3D HD - Sistema de Monitoreo Hídrico Flotante</title>
+  <title>Sistema de Monitoreo Hídrico Flotante - Visualizador 3D HD</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="app">
-    <h2 class="sr-only">Modelo 3D interactivo del Sistema de Monitoreo Hídrico Flotante</h2>
-    <div class="controls">
-      <button class="btn active" data-view="iso">📐 Isométrica</button>
-      <button class="btn" data-view="front">⬇ Frontal</button>
-      <button class="btn" data-view="top">⬅ Superior</button>
-      <button class="btn" data-view="side">⬅ Lateral</button>
-      <button class="btn" data-view="rotate">🔄 Auto-rotar</button>
-      <button class="btn" id="lightToggle">💡 Iluminación</button>
+  <!-- LOGOS -->
+  <div class="logo-stem">STEM 🧬</div>
+  <div class="logo-project">
+    <div class="logo-text">Monitoreo<br>Hídrico</div>
+  </div>
+
+  <!-- PRESENTACIÓN INICIAL -->
+  <div id="splash" class="splash-screen">
+    <div class="splash-content">
+      <h1>🌊 Sistema de Monitoreo Hídrico Flotante</h1>
+      <p class="splash-subtitle">Visualizador 3D Interactivo HD</p>
+      <div class="splash-description">
+        <p>Explora los componentes del sistema flotante de monitoreo de calidad de agua para la Reserva Miraflores.</p>
+        <p><strong>Cómo usar:</strong></p>
+        <ul>
+          <li>✓ Haz clic en los botones de componentes</li>
+          <li>✓ Escucha la narración automática</li>
+          <li>✓ Rota el modelo con el mouse</li>
+          <li>✓ Zoom con la rueda</li>
+        </ul>
+      </div>
+      <button class="splash-button" onclick="closeSplash()">Comenzar →</button>
     </div>
-    <div class="info-bar" id="infobar">Arrastra para rotar · Rueda para zoom · Doble-clic para vista frontal</div>
-    <canvas id="c" width="680" height="500"></canvas>
-    <div class="legend">
-      <div class="leg-item"><div class="leg-dot" style="background:#4A90E2;"></div>Caja sensores</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#999;"></div>Electrónica</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#E05252;"></div>Sensor pH</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#52B452;"></div>Turbidez</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#E0C030;"></div>TDS</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#E07830;"></div>Nivel</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#f5f5f5;border:0.5px solid #999;"></div>Icopor</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#8B5E3C;"></div>Tuberías</div>
+  </div>
+
+  <div id="app" class="main-container">
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-content">
+        <div>
+          <h1>🔬 Visualizador 3D HD</h1>
+          <p class="subtitle">Sistema de Monitoreo Hídrico Flotante • Reserva Miraflores</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTROLES PRINCIPALES -->
+    <div class="controls-section">
+      <div class="controls">
+        <button class="btn btn-view active" data-view="iso">📐 Isométrica</button>
+        <button class="btn btn-view" data-view="front">⬇ Frontal</button>
+        <button class="btn btn-view" data-view="top">⬅ Superior</button>
+        <button class="btn btn-view" data-view="side">⬅ Lateral</button>
+        <button class="btn btn-view" data-view="rotate">🔄 Auto-rotar</button>
+        <button class="btn btn-view" id="lightToggle">💡 Iluminación</button>
+      </div>
+      <div class="info-bar" id="infobar">← Selecciona una parte haciendo clic en los botones abajo</div>
     </div>
-    <div class="stats">
-      <div class="stat-card"><div class="stat-val">45×35×28</div><div class="stat-lbl">Dimensiones (cm)</div></div>
-      <div class="stat-card"><div class="stat-val">49.4 kg</div><div class="stat-lbl">Peso total</div></div>
-      <div class="stat-card"><div class="stat-val">317.7 kg</div><div class="stat-lbl">Capacidad flotante</div></div>
-      <div class="stat-card"><div class="stat-val">16.1 cm</div><div class="stat-lbl">Profundidad (draft)</div></div>
+
+    <!-- CANVAS -->
+    <canvas id="c" width="1280" height="720" class="canvas-3d"></canvas>
+
+    <!-- PANEL DE COMPONENTES -->
+    <div class="components-section">
+      <h3>📋 Selecciona un Componente:</h3>
+      <div class="components-grid" id="componentsGrid">
+        <!-- Se rellena dinámicamente -->
+      </div>
+    </div>
+
+    <!-- INFORMACIÓN Y LEYENDA -->
+    <div class="info-footer">
+      <div class="legend">
+        <strong>Leyenda:</strong>
+        <div class="leg-item"><div class="leg-dot" style="background:#4A90E2;"></div>Caja sensores</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#999;"></div>Electrónica</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#E05252;"></div>pH</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#52B452;"></div>Turbidez</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#E0C030;"></div>TDS</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#E07830;"></div>Nivel</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f5f5f5;border:0.5px solid #999;"></div>Icopor</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#8B5E3C;"></div>Tuberías</div>
+      </div>
+      <div class="specs">
+        <strong>Especificaciones:</strong>
+        <div class="spec-item">45×35×28 cm • 49.4 kg • 317.7 kg flotabilidad • Draft: 16.1 cm</div>
+      </div>
     </div>
   </div>
 
   <script src="app.js"></script>
+  <script src="audio.js"></script>
 </body>
 </html>
