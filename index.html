@@ -9,6 +9,7 @@
 <body>
   <!-- LOGOS -->
   <div class="logo-stem">STEM 🧬</div>
+  <div class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar tema">🌙</div>
   <div class="logo-project">
     <div class="logo-text">Monitoreo<br>Hídrico</div>
   </div>
@@ -70,15 +71,12 @@
     <!-- INFORMACIÓN Y LEYENDA -->
     <div class="info-footer">
       <div class="legend">
-        <strong>Leyenda:</strong>
-        <div class="leg-item"><div class="leg-dot" style="background:#4A90E2;"></div>Caja sensores</div>
+        <strong>Leyenda por Categoría:</strong>
+        <div class="leg-item"><div class="leg-dot" style="background:#0088ff;"></div>Flotadores</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#ffbb00;"></div>Sensores</div>
         <div class="leg-item"><div class="leg-dot" style="background:#999;"></div>Electrónica</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#E05252;"></div>pH</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#52B452;"></div>Turbidez</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#E0C030;"></div>TDS</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#E07830;"></div>Nivel</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#f5f5f5;border:0.5px solid #999;"></div>Icopor</div>
         <div class="leg-item"><div class="leg-dot" style="background:#8B5E3C;"></div>Tuberías</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#666;"></div>Anclaje</div>
       </div>
       <div class="specs">
         <strong>Especificaciones:</strong>
@@ -89,5 +87,29 @@
 
   <script src="app.js"></script>
   <script src="audio.js"></script>
+  <script>
+    // Toggle tema
+    function toggleTheme() {
+      document.body.classList.toggle('light-theme');
+      const toggle = document.getElementById('themeToggle');
+      
+      if (document.body.classList.contains('light-theme')) {
+        toggle.textContent = '☀️';
+        localStorage.setItem('theme', 'light');
+      } else {
+        toggle.textContent = '🌙';
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+
+    // Cargar tema guardado
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        document.getElementById('themeToggle').textContent = '☀️';
+      }
+    });
+  </script>
 </body>
 </html>
