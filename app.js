@@ -1,14 +1,12 @@
-/**
- * Sistema de Monitoreo Hídrico Flotante - Visualizador 3D HD Ultra
- * Modelo interactivo con iluminación avanzada, detección de clics y nombres de partes
- */
+/* * Sistema de Monitoreo Hídrico Flotante - Visualizador 3D HD Ultra v3.0
+ * Modelo interactivo con botones, narración de audio y mejor resolución */
 
 class Visualizer3D {
   constructor() {
     this.canvas = document.getElementById('c');
     this.ctx = this.canvas.getContext('2d');
     
-    // Dimensiones
+    // Dimensiones mejoradas para HD
     this.W = this.canvas.width;
     this.H = this.canvas.height;
     
@@ -37,7 +35,6 @@ class Visualizer3D {
     // Partes clickeables
     this.clickableParts = [];
     this.hoveredPart = null;
-    this.selectedPart = null;
     this.mouseX = -1;
     this.mouseY = -1;
     this.infoTimeout = null;
@@ -57,7 +54,10 @@ class Visualizer3D {
     });
 
     // Botón de iluminación
-    document.getElementById('lightToggle').addEventListener('click', (e) => this.toggleLight(e));
+    const lightBtn = document.getElementById('lightToggle');
+    if (lightBtn) {
+      lightBtn.addEventListener('click', (e) => this.toggleLight(e));
+    }
 
     // Canvas - Mouse
     this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
@@ -66,7 +66,6 @@ class Visualizer3D {
     this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
     this.canvas.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
     this.canvas.addEventListener('dblclick', () => this.onDoubleClick());
-    this.canvas.addEventListener('click', (e) => this.onCanvasClick(e));
 
     // Touch support
     this.canvas.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
@@ -91,7 +90,7 @@ class Visualizer3D {
       }
       
       // Actualizar botón activo
-      document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
       buttonEl.classList.add('active');
     }
   }
@@ -130,7 +129,6 @@ class Visualizer3D {
       this.lastMX = e.offsetX;
       this.lastMY = e.offsetY;
     } else {
-      // Almacenar posición del mouse
       this.mouseX = e.offsetX;
       this.mouseY = e.offsetY;
     }
@@ -145,15 +143,6 @@ class Visualizer3D {
   onDoubleClick() {
     this.viewTarget = { rx: 0, ry: 0 };
     this.viewAnimating = true;
-  }
-
-  onCanvasClick(e) {
-    if (this.dragging) return;
-    
-    const part = this.detectPart(this.mouseX, this.mouseY);
-    if (part) {
-      this.showPartInfo(part);
-    }
   }
 
   onTouchStart(e) {
@@ -185,9 +174,7 @@ class Visualizer3D {
     this.dragging = false;
   }
 
-  // Detectar si se hizo clic en una parte
   detectPart(mouseX, mouseY) {
-    // Buscar de adelante hacia atrás (respetando profundidad)
     for (let i = this.clickableParts.length - 1; i >= 0; i--) {
       const part = this.clickableParts[i];
       if (this.pointInPolygon(mouseX, mouseY, part.pts)) {
@@ -197,7 +184,6 @@ class Visualizer3D {
     return null;
   }
 
-  // Verificar si un punto está dentro de un polígono (algoritmo ray casting)
   pointInPolygon(x, y, vertices) {
     let inside = false;
     for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
@@ -210,25 +196,6 @@ class Visualizer3D {
     return inside;
   }
 
-  // Mostrar información de la parte
-  showPartInfo(part) {
-    const infoBar = document.getElementById('infobar');
-    infoBar.textContent = `✓ ${part.name}`;
-    infoBar.style.color = '#E05252';
-    infoBar.style.fontWeight = 'bold';
-    
-    // Cancelar timeout anterior si existe
-    if (this.infoTimeout) clearTimeout(this.infoTimeout);
-    
-    // Restaurar después de 3 segundos
-    this.infoTimeout = setTimeout(() => {
-      infoBar.textContent = 'Arrastra para rotar · Rueda para zoom · Doble-clic para vista frontal';
-      infoBar.style.fontWeight = 'normal';
-      infoBar.style.color = 'var(--color-text-secondary)';
-    }, 3000);
-  }
-
-  // Proyección 3D a 2D
   project(x, y, z) {
     const cosX = Math.cos(this.rotX);
     const sinX = Math.sin(this.rotX);
@@ -252,7 +219,6 @@ class Visualizer3D {
     };
   }
 
-  // Calcular normal de cara para iluminación
   calculateNormal(pts) {
     if (pts.length < 3) return { x: 0, y: 0, z: 0 };
     
@@ -271,7 +237,6 @@ class Visualizer3D {
     return { x: nX / len, y: nY / len, z: nZ / len };
   }
 
-  // Calcular iluminación
   calculateLight(x, y, z, nX, nY, nZ, baseColor) {
     const lx = this.lightPos.x - x * 0.004;
     const ly = this.lightPos.y - y * 0.003;
@@ -287,7 +252,6 @@ class Visualizer3D {
     return this.shadeColor(baseColor, 0.4 + bright * 0.6);
   }
 
-  // Crear cara poligonal
   face(pts, color, alpha = 1, partName = null) {
     if (pts.length < 3) return null;
     
@@ -305,7 +269,6 @@ class Visualizer3D {
       name: partName
     };
 
-    // Registrar para clickabilidad si tiene nombre
     if (partName && partName.trim()) {
       this.clickableParts.push({
         name: partName,
@@ -318,7 +281,6 @@ class Visualizer3D {
     return face;
   }
 
-  // Dibujar una cara
   drawFace(f) {
     this.ctx.save();
     this.ctx.globalAlpha = f.alpha;
@@ -341,7 +303,6 @@ class Visualizer3D {
     this.ctx.restore();
   }
 
-  // Crear caja 3D
   box(cx, cy, cz, w, h, d, col, alpha = 1, partName = null) {
     const x0 = cx - w / 2, x1 = cx + w / 2;
     const y0 = cy - h / 2, y1 = cy + h / 2;
@@ -362,12 +323,10 @@ class Visualizer3D {
     ].filter(f => f);
   }
 
-  // Crear cilindro 3D
-  cylinder(cx, cy, cz, r, h, col, segs = 24, partName = null) {
+  cylinder(cx, cy, cz, r, h, col, segs = 32, partName = null) {
     const faces = [];
     const y0 = cy - h / 2, y1 = cy + h / 2;
 
-    // Lados
     for (let i = 0; i < segs; i++) {
       const a0 = (i / segs) * Math.PI * 2;
       const a1 = ((i + 1) / segs) * Math.PI * 2;
@@ -386,7 +345,6 @@ class Visualizer3D {
     return faces;
   }
 
-  // Ajustar luminosidad de color
   shadeColor(hex, factor) {
     let r = parseInt(hex.slice(1, 3), 16);
     let g = parseInt(hex.slice(3, 5), 16);
@@ -399,56 +357,51 @@ class Visualizer3D {
     return `rgb(${r},${g},${b})`;
   }
 
-  // Construir escena
   buildScene() {
     const faces = [];
     const S = this.S;
 
-    // ICOPOR - 3 bloques flotadores
+    // ICOPOR
     faces.push(...this.box(-150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#e8e8e8', 1, 'Flotador Izquierdo'));
     faces.push(...this.box(0, 280 * S, 0, 100 * S, 100 * S, 350 * S, '#f0f0f0', 1, 'Flotador Central'));
     faces.push(...this.box(150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#e8e8e8', 1, 'Flotador Derecho'));
 
-    // SISTEMA DE ANCLAJE
-    faces.push(...this.cylinder(0, 500 * S, 0, 60 * S * 0.4, 30 * S, '#666', 16, 'Polea de Anclaje'));
-    faces.push(...this.cylinder(0, 350 * S, 0, 6 * S, 170 * S, '#8B7355', 12, 'Cuerda de Amarre'));
+    // ANCLAJE
+    faces.push(...this.cylinder(0, 500 * S, 0, 60 * S * 0.4, 30 * S, '#666', 20, 'Polea de Anclaje'));
+    faces.push(...this.cylinder(0, 350 * S, 0, 6 * S, 170 * S, '#8B7355', 16, 'Cuerda de Amarre'));
 
     // CAJA PRINCIPAL
     faces.push(...this.box(0, 60 * S, 0, 450 * S, 280 * S, 350 * S, '#4A90E2', 0.88, 'Caja Principal'));
 
-    // DIVISIONES INTERNAS
+    // DIVISIONES
     faces.push(...this.box(0, 60 * S, 0, 450 * S, 5 * S, 350 * S, '#2a2a2a', 0.95, 'Divisor Horizontal'));
     faces.push(...this.box(0, 60 * S, 0, 5 * S, 280 * S, 350 * S, '#2a2a2a', 0.95, 'Divisor Vertical'));
 
     // SENSORES
-    faces.push(...this.cylinder(-100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#E05252', 20, 'Sensor pH'));
-    faces.push(...this.cylinder(100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#52B452', 20, 'Sensor Turbidez'));
-    faces.push(...this.cylinder(-100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E0C030', 20, 'Sensor TDS'));
-    faces.push(...this.cylinder(100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E07830', 20, 'Sensor Nivel'));
+    faces.push(...this.cylinder(-100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#E05252', 32, 'Sensor pH'));
+    faces.push(...this.cylinder(100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#52B452', 32, 'Sensor Turbidez'));
+    faces.push(...this.cylinder(-100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E0C030', 32, 'Sensor TDS'));
+    faces.push(...this.cylinder(100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E07830', 32, 'Sensor Nivel'));
 
     // TUBERÍAS
-    faces.push(...this.cylinder(0, 220 * S, 0, 10 * S, 85 * S, '#8B5E3C', 16, 'Tubería Principal'));
-    faces.push(...this.cylinder(-80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 12, 'Tubería Auxiliar Izq'));
-    faces.push(...this.cylinder(80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 12, 'Tubería Auxiliar Der'));
+    faces.push(...this.cylinder(0, 220 * S, 0, 10 * S, 85 * S, '#8B5E3C', 20, 'Tubería Principal'));
+    faces.push(...this.cylinder(-80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 16, 'Tubería Auxiliar Izq'));
+    faces.push(...this.cylinder(80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 16, 'Tubería Auxiliar Der'));
 
-    // ZONA ELECTRÓNICA
+    // ELECTRÓNICA
     faces.push(...this.box(0, -230 * S, 0, 450 * S, 120 * S, 350 * S, '#999999', 0.9, 'Zona Electrónica'));
-
-    // ESP32
     faces.push(...this.box(-100 * S, -230 * S, -80 * S, 50 * S, 30 * S, 80 * S, '#1a1a1a', 1, 'Microcontrolador ESP32'));
-
-    // BATERÍA
     faces.push(...this.box(80 * S, -230 * S, 80 * S, 80 * S, 50 * S, 60 * S, '#8B3A3A', 1, 'Batería 12V'));
 
     // ANTENA
-    faces.push(...this.cylinder(-200 * S, -310 * S, -150 * S, 5 * S, 160 * S, '#C0C0C0', 12, 'Antena WiFi'));
+    faces.push(...this.cylinder(-200 * S, -310 * S, -150 * S, 5 * S, 160 * S, '#C0C0C0', 16, 'Antena WiFi'));
 
     // LEDs
     const ledColors = ['#E05252', '#52B452', '#E0C030', '#4A90E2'];
     const ledNames = ['LED pH', 'LED Turbidez', 'LED TDS', 'LED WiFi'];
     const ledPos = [[-80, -80], [-30, -80], [-80, 80], [-30, 80]];
     ledPos.forEach(([lx, lz], i) => {
-      faces.push(...this.cylinder(lx * S, -270 * S, lz * S, 10 * S, 8 * S, ledColors[i], 16, ledNames[i]));
+      faces.push(...this.cylinder(lx * S, -270 * S, lz * S, 10 * S, 8 * S, ledColors[i], 20, ledNames[i]));
     });
 
     // LÍNEA DE FLOTACIÓN
@@ -457,19 +410,15 @@ class Visualizer3D {
     return faces;
   }
 
-  // Renderizar frame
   render() {
-    // Limpiar lista de partes clickeables
     this.clickableParts = [];
 
-    // Fondo con gradiente
     const grad = this.ctx.createLinearGradient(0, 0, 0, this.H);
     grad.addColorStop(0, 'rgba(240,245,250,1)');
     grad.addColorStop(1, 'rgba(250,250,250,1)');
     this.ctx.fillStyle = grad;
     this.ctx.fillRect(0, 0, this.W, this.H);
 
-    // Animar vista si es necesario
     if (this.viewAnimating) {
       const dx = this.viewTarget.rx - this.rotX;
       const dy = this.viewTarget.ry - this.rotY;
@@ -482,22 +431,19 @@ class Visualizer3D {
       this.rotY += 0.003;
     }
 
-    // Construir y renderizar escena
     const faces = this.buildScene();
     faces.sort((a, b) => b.depth - a.depth);
     faces.forEach(f => this.drawFace(f));
 
-    // Detectar hover DESPUÉS de renderizar
     if (this.mouseX >= 0 && this.mouseY >= 0) {
       this.hoveredPart = this.detectPart(this.mouseX, this.mouseY);
       this.canvas.style.cursor = this.hoveredPart ? 'pointer' : 'grab';
     }
 
-    // Resaltar parte hovereada
     if (this.hoveredPart) {
       this.ctx.save();
       this.ctx.strokeStyle = 'rgba(255,200,0,0.9)';
-      this.ctx.lineWidth = 2.5;
+      this.ctx.lineWidth = 3;
       this.ctx.beginPath();
       this.ctx.moveTo(this.hoveredPart.pts[0].sx, this.hoveredPart.pts[0].sy);
       for (let i = 1; i < this.hoveredPart.pts.length; i++) {
@@ -508,13 +454,12 @@ class Visualizer3D {
       this.ctx.restore();
     }
 
-    // Etiquetas
-    this.ctx.font = '12px var(--font-sans)';
-    this.ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    this.ctx.font = '14px var(--font-sans)';
+    this.ctx.fillStyle = 'rgba(0,0,0,0.7)';
     const labels = [
-      { x: 0, y: -230, z: 0, text: 'Electrónica', sz: 11 },
-      { x: 0, y: 60, z: 0, text: 'Sensores', sz: 11 },
-      { x: 0, y: 280, z: 0, text: 'Icopor', sz: 10 },
+      { x: 0, y: -230, z: 0, text: 'Electrónica', sz: 13 },
+      { x: 0, y: 60, z: 0, text: 'Sensores', sz: 13 },
+      { x: 0, y: 280, z: 0, text: 'Icopor', sz: 12 },
     ];
     labels.forEach(lb => {
       const p = this.project(lb.x * this.S, lb.y * this.S, lb.z * this.S);
@@ -523,20 +468,12 @@ class Visualizer3D {
       this.ctx.fillText(lb.text, p.sx, p.sy + 4);
     });
 
-    // Draft label
     this.ctx.fillStyle = 'rgba(26,107,181,0.7)';
-    this.ctx.font = '10px var(--font-sans)';
+    this.ctx.font = '11px var(--font-sans)';
     this.ctx.textAlign = 'right';
     this.ctx.fillText('Draft: 16.1 cm', this.W - 30, 40);
-
-    // Help text
-    this.ctx.fillStyle = 'rgba(100,100,100,0.5)';
-    this.ctx.font = '9px var(--font-sans)';
-    this.ctx.textAlign = 'left';
-    this.ctx.fillText('Haz clic en cualquier parte para ver su nombre', 10, 25);
   }
 
-  // Loop de renderizado
   startRenderLoop() {
     const loop = () => {
       this.render();
@@ -546,7 +483,74 @@ class Visualizer3D {
   }
 }
 
-// Inicializar cuando el DOM esté listo
+// Funciones auxiliares
+function closeSplash() {
+  const splash = document.getElementById('splash');
+  if (splash) {
+    splash.classList.add('hidden');
+  }
+}
+
+function createComponentsGrid() {
+  const components = [
+    'Flotador Izquierdo', 'Flotador Central', 'Flotador Derecho',
+    'Polea de Anclaje', 'Cuerda de Amarre', 'Caja Principal',
+    'Divisor Horizontal', 'Divisor Vertical',
+    'Sensor pH', 'Sensor Turbidez', 'Sensor TDS', 'Sensor Nivel',
+    'Tubería Principal', 'Tubería Auxiliar Izq', 'Tubería Auxiliar Der',
+    'Zona Electrónica', 'Microcontrolador ESP32', 'Batería 12V',
+    'Antena WiFi', 'LED pH', 'LED Turbidez', 'LED TDS', 'LED WiFi',
+    'Línea de Flotación'
+  ];
+
+  const grid = document.getElementById('componentsGrid');
+  if (!grid) return;
+
+  grid.innerHTML = '';
+
+  components.forEach(component => {
+    const btn = document.createElement('button');
+    btn.className = 'component-btn';
+    btn.textContent = component;
+    btn.setAttribute('data-component', component);
+    
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.component-btn').forEach(b => {
+        b.classList.remove('active');
+      });
+      
+      btn.classList.add('active');
+      
+      const infoBar = document.getElementById('infobar');
+      if (infoBar) {
+        infoBar.textContent = `✓ ${component}`;
+      }
+      
+      if (typeof audioManager !== 'undefined') {
+        audioManager.speak(component);
+      }
+    });
+
+    grid.appendChild(btn);
+  });
+}
+
+// Inicializar
 document.addEventListener('DOMContentLoaded', () => {
+  createComponentsGrid();
+  
+  const splash = document.getElementById('splash');
+  if (splash) {
+    setTimeout(() => {
+      if (!splash.classList.contains('hidden')) {
+        closeSplash();
+      }
+    }, 10000);
+  }
+  
   new Visualizer3D();
+});
+
+window.addEventListener('load', () => {
+  // Extra check
 });
