@@ -1,12 +1,14 @@
-/* * Sistema de Monitoreo Hídrico Flotante - Visualizador 3D HD Ultra v3.0
- * Modelo interactivo con botones, narración de audio y mejor resolución */
+/**
+ * Sistema de Monitoreo Hídrico Flotante - Visualizador 3D HD Ultra v3.1
+ * Con animación de selección, colores por categoría, tema claro/oscuro y responsive
+ */
 
 class Visualizer3D {
   constructor() {
     this.canvas = document.getElementById('c');
     this.ctx = this.canvas.getContext('2d');
     
-    // Dimensiones mejoradas para HD
+    // Dimensiones HD
     this.W = this.canvas.width;
     this.H = this.canvas.height;
     
@@ -38,6 +40,11 @@ class Visualizer3D {
     this.mouseX = -1;
     this.mouseY = -1;
     this.infoTimeout = null;
+    
+    // NUEVA: Animación de selección
+    this.selectedPart = null;
+    this.animationProgress = 0;
+    this.animating = false;
     
     this.init();
   }
@@ -281,11 +288,18 @@ class Visualizer3D {
     return face;
   }
 
-  drawFace(f) {
+  drawFace(f, isSelected = false) {
     this.ctx.save();
     this.ctx.globalAlpha = f.alpha;
     
-    const c = this.calculateLight(0, 0, 0, f.nx, f.ny, f.nz, f.color);
+    let c = this.calculateLight(0, 0, 0, f.nx, f.ny, f.nz, f.color);
+    
+    // NUEVA: Efecto de selección con animación
+    if (isSelected && this.animating) {
+      const brightness = 1 + (Math.sin(this.animationProgress * Math.PI * 2) * 0.3);
+      c = this.shadeColor(f.color, brightness);
+    }
+    
     this.ctx.fillStyle = c;
     
     this.ctx.beginPath();
@@ -296,9 +310,16 @@ class Visualizer3D {
     this.ctx.closePath();
     this.ctx.fill();
     
-    this.ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-    this.ctx.lineWidth = 0.4;
-    this.ctx.stroke();
+    // Borde con aura si está seleccionado
+    if (isSelected && this.animating) {
+      this.ctx.strokeStyle = `rgba(255, 200, 0, ${0.3 + Math.sin(this.animationProgress * Math.PI * 2) * 0.2})`;
+      this.ctx.lineWidth = 2.5;
+      this.ctx.stroke();
+    } else {
+      this.ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+      this.ctx.lineWidth = 0.4;
+      this.ctx.stroke();
+    }
     
     this.ctx.restore();
   }
@@ -361,14 +382,14 @@ class Visualizer3D {
     const faces = [];
     const S = this.S;
 
-    // ICOPOR
-    faces.push(...this.box(-150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#e8e8e8', 1, 'Flotador Izquierdo'));
-    faces.push(...this.box(0, 280 * S, 0, 100 * S, 100 * S, 350 * S, '#f0f0f0', 1, 'Flotador Central'));
-    faces.push(...this.box(150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#e8e8e8', 1, 'Flotador Derecho'));
+    // ICOPOR - Flotadores (Categoría: Floaters)
+    faces.push(...this.box(-150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#0088ff', 1, 'Flotador Izquierdo'));
+    faces.push(...this.box(0, 280 * S, 0, 100 * S, 100 * S, 350 * S, '#0099ff', 1, 'Flotador Central'));
+    faces.push(...this.box(150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#0088ff', 1, 'Flotador Derecho'));
 
-    // ANCLAJE
+    // ANCLAJE - Anchors
     faces.push(...this.cylinder(0, 500 * S, 0, 60 * S * 0.4, 30 * S, '#666', 20, 'Polea de Anclaje'));
-    faces.push(...this.cylinder(0, 350 * S, 0, 6 * S, 170 * S, '#8B7355', 16, 'Cuerda de Amarre'));
+    faces.push(...this.cylinder(0, 350 * S, 0, 6 * S, 170 * S, '#777', 16, 'Cuerda de Amarre'));
 
     // CAJA PRINCIPAL
     faces.push(...this.box(0, 60 * S, 0, 450 * S, 280 * S, 350 * S, '#4A90E2', 0.88, 'Caja Principal'));
@@ -377,18 +398,18 @@ class Visualizer3D {
     faces.push(...this.box(0, 60 * S, 0, 450 * S, 5 * S, 350 * S, '#2a2a2a', 0.95, 'Divisor Horizontal'));
     faces.push(...this.box(0, 60 * S, 0, 5 * S, 280 * S, 350 * S, '#2a2a2a', 0.95, 'Divisor Vertical'));
 
-    // SENSORES
+    // SENSORES - Sensors (Amarillo/Rojo)
     faces.push(...this.cylinder(-100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#E05252', 32, 'Sensor pH'));
-    faces.push(...this.cylinder(100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#52B452', 32, 'Sensor Turbidez'));
-    faces.push(...this.cylinder(-100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E0C030', 32, 'Sensor TDS'));
-    faces.push(...this.cylinder(100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#E07830', 32, 'Sensor Nivel'));
+    faces.push(...this.cylinder(100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#ffbb00', 32, 'Sensor Turbidez'));
+    faces.push(...this.cylinder(-100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#ffcc00', 32, 'Sensor TDS'));
+    faces.push(...this.cylinder(100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#ffbb00', 32, 'Sensor Nivel'));
 
-    // TUBERÍAS
+    // TUBERÍAS - Pipes
     faces.push(...this.cylinder(0, 220 * S, 0, 10 * S, 85 * S, '#8B5E3C', 20, 'Tubería Principal'));
-    faces.push(...this.cylinder(-80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 16, 'Tubería Auxiliar Izq'));
-    faces.push(...this.cylinder(80 * S, 80 * S, 0, 8 * S, 40 * S, '#8B5E3C', 16, 'Tubería Auxiliar Der'));
+    faces.push(...this.cylinder(-80 * S, 80 * S, 0, 8 * S, 40 * S, '#9d6e3d', 16, 'Tubería Auxiliar Izq'));
+    faces.push(...this.cylinder(80 * S, 80 * S, 0, 8 * S, 40 * S, '#9d6e3d', 16, 'Tubería Auxiliar Der'));
 
-    // ELECTRÓNICA
+    // ELECTRÓNICA - Electronics
     faces.push(...this.box(0, -230 * S, 0, 450 * S, 120 * S, 350 * S, '#999999', 0.9, 'Zona Electrónica'));
     faces.push(...this.box(-100 * S, -230 * S, -80 * S, 50 * S, 30 * S, 80 * S, '#1a1a1a', 1, 'Microcontrolador ESP32'));
     faces.push(...this.box(80 * S, -230 * S, 80 * S, 80 * S, 50 * S, 60 * S, '#8B3A3A', 1, 'Batería 12V'));
@@ -397,7 +418,7 @@ class Visualizer3D {
     faces.push(...this.cylinder(-200 * S, -310 * S, -150 * S, 5 * S, 160 * S, '#C0C0C0', 16, 'Antena WiFi'));
 
     // LEDs
-    const ledColors = ['#E05252', '#52B452', '#E0C030', '#4A90E2'];
+    const ledColors = ['#E05252', '#ffbb00', '#ffcc00', '#4A90E2'];
     const ledNames = ['LED pH', 'LED Turbidez', 'LED TDS', 'LED WiFi'];
     const ledPos = [[-80, -80], [-30, -80], [-80, 80], [-30, 80]];
     ledPos.forEach(([lx, lz], i) => {
@@ -413,6 +434,7 @@ class Visualizer3D {
   render() {
     this.clickableParts = [];
 
+    // Fondo responsivo
     const grad = this.ctx.createLinearGradient(0, 0, 0, this.H);
     grad.addColorStop(0, 'rgba(240,245,250,1)');
     grad.addColorStop(1, 'rgba(250,250,250,1)');
@@ -431,9 +453,21 @@ class Visualizer3D {
       this.rotY += 0.003;
     }
 
+    // NUEVA: Actualizar animación
+    if (this.animating) {
+      this.animationProgress += 0.05;
+      if (this.animationProgress >= 1) {
+        this.animationProgress = 0;
+      }
+    }
+
     const faces = this.buildScene();
     faces.sort((a, b) => b.depth - a.depth);
-    faces.forEach(f => this.drawFace(f));
+    
+    faces.forEach(f => {
+      const isSelected = this.selectedPart && f.name === this.selectedPart.name;
+      this.drawFace(f, isSelected);
+    });
 
     if (this.mouseX >= 0 && this.mouseY >= 0) {
       this.hoveredPart = this.detectPart(this.mouseX, this.mouseY);
@@ -481,6 +515,33 @@ class Visualizer3D {
     };
     requestAnimationFrame(loop);
   }
+
+  // NUEVA: Función para seleccionar y animar
+  selectPart(partName) {
+    this.selectedPart = null;
+    for (let face of this.buildScene()) {
+      if (face && face.name === partName) {
+        this.selectedPart = face;
+        break;
+      }
+    }
+    
+    if (this.selectedPart) {
+      this.animating = true;
+      this.animationProgress = 0;
+      
+      // Animar rotación hacia la parte
+      const avgPt = this.selectedPart.pts.reduce((a, p) => ({
+        sx: a.sx + p.sx,
+        sy: a.sy + p.sy
+      }), { sx: 0, sy: 0 });
+      avgPt.sx /= this.selectedPart.pts.length;
+      avgPt.sy /= this.selectedPart.pts.length;
+      
+      // Rotar ligeramente hacia la parte
+      this.rotY += Math.random() * 0.1 - 0.05;
+    }
+  }
 }
 
 // Funciones auxiliares
@@ -491,18 +552,36 @@ function closeSplash() {
   }
 }
 
-function createComponentsGrid() {
-  const components = [
-    'Flotador Izquierdo', 'Flotador Central', 'Flotador Derecho',
-    'Polea de Anclaje', 'Cuerda de Amarre', 'Caja Principal',
-    'Divisor Horizontal', 'Divisor Vertical',
-    'Sensor pH', 'Sensor Turbidez', 'Sensor TDS', 'Sensor Nivel',
-    'Tubería Principal', 'Tubería Auxiliar Izq', 'Tubería Auxiliar Der',
-    'Zona Electrónica', 'Microcontrolador ESP32', 'Batería 12V',
-    'Antena WiFi', 'LED pH', 'LED Turbidez', 'LED TDS', 'LED WiFi',
-    'Línea de Flotación'
-  ];
+// Mapa de categorías para botones
+const componentCategories = {
+  'Flotador Izquierdo': 'btn-floaters',
+  'Flotador Central': 'btn-floaters',
+  'Flotador Derecho': 'btn-floaters',
+  'Polea de Anclaje': 'btn-anchors',
+  'Cuerda de Amarre': 'btn-anchors',
+  'Caja Principal': 'btn-sensors',
+  'Divisor Horizontal': 'btn-sensors',
+  'Divisor Vertical': 'btn-sensors',
+  'Sensor pH': 'btn-sensors',
+  'Sensor Turbidez': 'btn-sensors',
+  'Sensor TDS': 'btn-sensors',
+  'Sensor Nivel': 'btn-sensors',
+  'Tubería Principal': 'btn-pipes',
+  'Tubería Auxiliar Izq': 'btn-pipes',
+  'Tubería Auxiliar Der': 'btn-pipes',
+  'Zona Electrónica': 'btn-electronics',
+  'Microcontrolador ESP32': 'btn-electronics',
+  'Batería 12V': 'btn-electronics',
+  'Antena WiFi': 'btn-electronics',
+  'LED pH': 'btn-sensors',
+  'LED Turbidez': 'btn-sensors',
+  'LED TDS': 'btn-sensors',
+  'LED WiFi': 'btn-electronics',
+  'Línea de Flotación': 'btn-floaters'
+};
 
+function createComponentsGrid() {
+  const components = Object.keys(componentCategories);
   const grid = document.getElementById('componentsGrid');
   if (!grid) return;
 
@@ -510,7 +589,7 @@ function createComponentsGrid() {
 
   components.forEach(component => {
     const btn = document.createElement('button');
-    btn.className = 'component-btn';
+    btn.className = `component-btn ${componentCategories[component] || ''}`;
     btn.textContent = component;
     btn.setAttribute('data-component', component);
     
@@ -526,6 +605,11 @@ function createComponentsGrid() {
         infoBar.textContent = `✓ ${component}`;
       }
       
+      // NUEVA: Seleccionar parte en el modelo y animar
+      if (window.visualizer) {
+        window.visualizer.selectPart(component);
+      }
+      
       if (typeof audioManager !== 'undefined') {
         audioManager.speak(component);
       }
@@ -536,6 +620,8 @@ function createComponentsGrid() {
 }
 
 // Inicializar
+let visualizer;
+
 document.addEventListener('DOMContentLoaded', () => {
   createComponentsGrid();
   
@@ -548,9 +634,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 10000);
   }
   
-  new Visualizer3D();
-});
-
-window.addEventListener('load', () => {
-  // Extra check
+  visualizer = new Visualizer3D();
+  window.visualizer = visualizer;
 });
