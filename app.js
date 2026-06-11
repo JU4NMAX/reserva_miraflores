@@ -1,7 +1,6 @@
 /**
  * IECM - Sistema de Monitoreo Hídrico Flotante
- * Visualizador 3D HD v4.0 - Con Vista Explosionada y Modo Simulador
- */
+ * Visualizador 3D HD v4.0 - Con Vista Explosionada y Modo Simulador */
 
 class Visualizer3D {
   constructor() {
