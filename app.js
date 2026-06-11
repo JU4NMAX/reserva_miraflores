@@ -1,6 +1,6 @@
 /**
- * Sistema de Monitoreo Hídrico Flotante - Visualizador 3D HD Ultra v3.1
- * Con animación de selección, colores por categoría, tema claro/oscuro y responsive
+ * IECM - Sistema de Monitoreo Hídrico Flotante
+ * Visualizador 3D HD v4.0 - Con Vista Explosionada y Modo Simulador
  */
 
 class Visualizer3D {
@@ -8,17 +8,16 @@ class Visualizer3D {
     this.canvas = document.getElementById('c');
     this.ctx = this.canvas.getContext('2d');
     
-    // Dimensiones HD
     this.W = this.canvas.width;
     this.H = this.canvas.height;
     
-    // Estado de rotación y visualización
+    // Rotación y visualización
     this.rotX = 0.45;
     this.rotY = 0.55;
     this.scale = 1.2;
     this.autoRot = false;
     
-    // Estado de interacción
+    // Interacción
     this.dragging = false;
     this.lastMX = 0;
     this.lastMY = 0;
@@ -31,7 +30,7 @@ class Visualizer3D {
     this.lightPos = { x: 0.7, y: 0.3, z: 1 };
     this.advLighting = true;
     
-    // Factor de escala del modelo
+    // Factor de escala
     this.S = 0.5;
     
     // Partes clickeables
@@ -39,12 +38,18 @@ class Visualizer3D {
     this.hoveredPart = null;
     this.mouseX = -1;
     this.mouseY = -1;
-    this.infoTimeout = null;
     
     // NUEVA: Animación de selección
     this.selectedPart = null;
     this.animationProgress = 0;
     this.animating = false;
+    
+    // NUEVA: Modo explosionada
+    this.explodedMode = false;
+    this.explodeAmount = 0;
+    
+    // NUEVA: Modo simulador
+    this.simulatorMode = false;
     
     this.init();
   }
@@ -66,7 +71,19 @@ class Visualizer3D {
       lightBtn.addEventListener('click', (e) => this.toggleLight(e));
     }
 
-    // Canvas - Mouse
+    // Botón explosionada
+    const explodeBtn = document.getElementById('explodeToggle');
+    if (explodeBtn) {
+      explodeBtn.addEventListener('click', (e) => this.toggleExploded(e));
+    }
+
+    // Botón simulador
+    const simBtn = document.getElementById('simulatorToggle');
+    if (simBtn) {
+      simBtn.addEventListener('click', (e) => this.toggleSimulator(e));
+    }
+
+    // Canvas
     this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
     this.canvas.addEventListener('mouseup', () => this.onMouseUp());
     this.canvas.addEventListener('mouseleave', () => this.onMouseLeave());
@@ -74,10 +91,20 @@ class Visualizer3D {
     this.canvas.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
     this.canvas.addEventListener('dblclick', () => this.onDoubleClick());
 
-    // Touch support
+    // Touch
     this.canvas.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
     this.canvas.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
     this.canvas.addEventListener('touchend', () => this.onTouchEnd());
+  }
+
+  toggleExploded(e) {
+    this.explodedMode = !this.explodedMode;
+    e.target.classList.toggle('active', this.explodedMode);
+  }
+
+  toggleSimulator(e) {
+    this.simulatorMode = !this.simulatorMode;
+    e.target.classList.toggle('active', this.simulatorMode);
   }
 
   setView(viewName, buttonEl) {
@@ -96,7 +123,6 @@ class Visualizer3D {
         this.viewAnimating = true;
       }
       
-      // Actualizar botón activo
       document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
       buttonEl.classList.add('active');
     }
@@ -104,7 +130,7 @@ class Visualizer3D {
 
   toggleLight(e) {
     this.advLighting = !this.advLighting;
-    e.target.style.opacity = this.advLighting ? '1' : '0.5';
+    e.target.classList.toggle('active', this.advLighting);
   }
 
   onMouseDown(e) {
@@ -112,17 +138,14 @@ class Visualizer3D {
     this.lastMX = e.offsetX;
     this.lastMY = e.offsetY;
     this.autoRot = false;
-    this.canvas.classList.add('grabbing');
   }
 
   onMouseUp() {
     this.dragging = false;
-    this.canvas.classList.remove('grabbing');
   }
 
   onMouseLeave() {
     this.dragging = false;
-    this.canvas.classList.remove('grabbing');
     this.hoveredPart = null;
   }
 
@@ -130,7 +153,6 @@ class Visualizer3D {
     if (this.dragging) {
       this.rotY += (e.offsetX - this.lastMX) * 0.008;
       this.rotX += (e.offsetY - this.lastMY) * 0.008;
-      
       this.rotX = Math.max(-1.2, Math.min(1.5, this.rotX));
       
       this.lastMX = e.offsetX;
@@ -170,7 +192,6 @@ class Visualizer3D {
     
     this.rotY += (currentX - this.lastMX) * 0.008;
     this.rotX += (currentY - this.lastMY) * 0.008;
-    
     this.rotX = Math.max(-1.2, Math.min(1.5, this.rotX));
     
     this.lastMX = currentX;
@@ -203,7 +224,15 @@ class Visualizer3D {
     return inside;
   }
 
-  project(x, y, z) {
+  project(x, y, z, explodeDir = { x: 0, y: 0, z: 0 }) {
+    // Aplicar explosión
+    if (this.explodedMode) {
+      const explodeFactor = 0.5;
+      x += explodeDir.x * explodeFactor;
+      y += explodeDir.y * explodeFactor;
+      z += explodeDir.z * explodeFactor;
+    }
+
     const cosX = Math.cos(this.rotX);
     const sinX = Math.sin(this.rotX);
     const cosY = Math.cos(this.rotY);
@@ -259,7 +288,7 @@ class Visualizer3D {
     return this.shadeColor(baseColor, 0.4 + bright * 0.6);
   }
 
-  face(pts, color, alpha = 1, partName = null) {
+  face(pts, color, alpha = 1, partName = null, explodeDir = { x: 0, y: 0, z: 0 }) {
     if (pts.length < 3) return null;
     
     const avgDepth = pts.reduce((a, p) => a + p.depth, 0) / pts.length;
@@ -273,7 +302,8 @@ class Visualizer3D {
       nx: normal.x,
       ny: normal.y,
       nz: normal.z,
-      name: partName
+      name: partName,
+      explodeDir
     };
 
     if (partName && partName.trim()) {
@@ -294,7 +324,6 @@ class Visualizer3D {
     
     let c = this.calculateLight(0, 0, 0, f.nx, f.ny, f.nz, f.color);
     
-    // NUEVA: Efecto de selección con animación
     if (isSelected && this.animating) {
       const brightness = 1 + (Math.sin(this.animationProgress * Math.PI * 2) * 0.3);
       c = this.shadeColor(f.color, brightness);
@@ -310,7 +339,6 @@ class Visualizer3D {
     this.ctx.closePath();
     this.ctx.fill();
     
-    // Borde con aura si está seleccionado
     if (isSelected && this.animating) {
       this.ctx.strokeStyle = `rgba(255, 200, 0, ${0.3 + Math.sin(this.animationProgress * Math.PI * 2) * 0.2})`;
       this.ctx.lineWidth = 2.5;
@@ -329,18 +357,26 @@ class Visualizer3D {
     const y0 = cy - h / 2, y1 = cy + h / 2;
     const z0 = cz - d / 2, z1 = cz + d / 2;
 
+    const explodeDir = { x: cx * 0.5, y: cy * 0.5, z: cz * 0.5 };
+    const len = Math.sqrt(explodeDir.x ** 2 + explodeDir.y ** 2 + explodeDir.z ** 2);
+    if (len > 0) {
+      explodeDir.x /= len;
+      explodeDir.y /= len;
+      explodeDir.z /= len;
+    }
+
     const verts = [
       [x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
       [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]
-    ].map(v => this.project(v[0], v[1], v[2]));
+    ].map(v => this.project(v[0], v[1], v[2], explodeDir));
 
     return [
-      this.face([verts[0], verts[1], verts[2], verts[3]], col, alpha, partName),
-      this.face([verts[4], verts[5], verts[6], verts[7]], col, alpha, partName),
-      this.face([verts[0], verts[1], verts[5], verts[4]], col, alpha, partName),
-      this.face([verts[2], verts[3], verts[7], verts[6]], col, alpha, partName),
-      this.face([verts[0], verts[3], verts[7], verts[4]], col, alpha, partName),
-      this.face([verts[1], verts[2], verts[6], verts[5]], col, alpha, partName),
+      this.face([verts[0], verts[1], verts[2], verts[3]], col, alpha, partName, explodeDir),
+      this.face([verts[4], verts[5], verts[6], verts[7]], col, alpha, partName, explodeDir),
+      this.face([verts[0], verts[1], verts[5], verts[4]], col, alpha, partName, explodeDir),
+      this.face([verts[2], verts[3], verts[7], verts[6]], col, alpha, partName, explodeDir),
+      this.face([verts[0], verts[3], verts[7], verts[4]], col, alpha, partName, explodeDir),
+      this.face([verts[1], verts[2], verts[6], verts[5]], col, alpha, partName, explodeDir),
     ].filter(f => f);
   }
 
@@ -348,18 +384,26 @@ class Visualizer3D {
     const faces = [];
     const y0 = cy - h / 2, y1 = cy + h / 2;
 
+    const explodeDir = { x: cx * 0.5, y: cy * 0.5, z: cz * 0.5 };
+    const len = Math.sqrt(explodeDir.x ** 2 + explodeDir.y ** 2 + explodeDir.z ** 2);
+    if (len > 0) {
+      explodeDir.x /= len;
+      explodeDir.y /= len;
+      explodeDir.z /= len;
+    }
+
     for (let i = 0; i < segs; i++) {
       const a0 = (i / segs) * Math.PI * 2;
       const a1 = ((i + 1) / segs) * Math.PI * 2;
       
       const p = [
-        this.project(cx + Math.cos(a0) * r, y0, cz + Math.sin(a0) * r),
-        this.project(cx + Math.cos(a1) * r, y0, cz + Math.sin(a1) * r),
-        this.project(cx + Math.cos(a1) * r, y1, cz + Math.sin(a1) * r),
-        this.project(cx + Math.cos(a0) * r, y1, cz + Math.sin(a0) * r),
+        this.project(cx + Math.cos(a0) * r, y0, cz + Math.sin(a0) * r, explodeDir),
+        this.project(cx + Math.cos(a1) * r, y0, cz + Math.sin(a1) * r, explodeDir),
+        this.project(cx + Math.cos(a1) * r, y1, cz + Math.sin(a1) * r, explodeDir),
+        this.project(cx + Math.cos(a0) * r, y1, cz + Math.sin(a0) * r, explodeDir),
       ];
       
-      const f = this.face(p, col, 1, partName);
+      const f = this.face(p, col, 1, partName, explodeDir);
       if (f) faces.push(f);
     }
 
@@ -382,43 +426,43 @@ class Visualizer3D {
     const faces = [];
     const S = this.S;
 
-    // ICOPOR - Flotadores (Categoría: Floaters)
-    faces.push(...this.box(-150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#0088ff', 1, 'Flotador Izquierdo'));
+    // FLOTADORES
+    faces.push(...this.box(-150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#0066CC', 1, 'Flotador Izquierdo'));
     faces.push(...this.box(0, 280 * S, 0, 100 * S, 100 * S, 350 * S, '#0099ff', 1, 'Flotador Central'));
-    faces.push(...this.box(150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#0088ff', 1, 'Flotador Derecho'));
+    faces.push(...this.box(150 * S, 280 * S, 0, 200 * S, 100 * S, 350 * S, '#0066CC', 1, 'Flotador Derecho'));
 
-    // ANCLAJE - Anchors
-    faces.push(...this.cylinder(0, 500 * S, 0, 60 * S * 0.4, 30 * S, '#666', 20, 'Polea de Anclaje'));
-    faces.push(...this.cylinder(0, 350 * S, 0, 6 * S, 170 * S, '#777', 16, 'Cuerda de Amarre'));
+    // ANCLAJE
+    faces.push(...this.cylinder(0, 500 * S, 0, 60 * S * 0.4, 30 * S, '#003D7A', 20, 'Polea de Anclaje'));
+    faces.push(...this.cylinder(0, 350 * S, 0, 6 * S, 170 * S, '#003D7A', 16, 'Cuerda de Amarre'));
 
     // CAJA PRINCIPAL
-    faces.push(...this.box(0, 60 * S, 0, 450 * S, 280 * S, 350 * S, '#4A90E2', 0.88, 'Caja Principal'));
+    faces.push(...this.box(0, 60 * S, 0, 450 * S, 280 * S, 350 * S, '#0066CC', 0.88, 'Caja Principal'));
 
     // DIVISIONES
-    faces.push(...this.box(0, 60 * S, 0, 450 * S, 5 * S, 350 * S, '#2a2a2a', 0.95, 'Divisor Horizontal'));
-    faces.push(...this.box(0, 60 * S, 0, 5 * S, 280 * S, 350 * S, '#2a2a2a', 0.95, 'Divisor Vertical'));
+    faces.push(...this.box(0, 60 * S, 0, 450 * S, 5 * S, 350 * S, '#003D7A', 0.95, 'Divisor Horizontal'));
+    faces.push(...this.box(0, 60 * S, 0, 5 * S, 280 * S, 350 * S, '#003D7A', 0.95, 'Divisor Vertical'));
 
-    // SENSORES - Sensors (Amarillo/Rojo)
-    faces.push(...this.cylinder(-100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#E05252', 32, 'Sensor pH'));
-    faces.push(...this.cylinder(100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#ffbb00', 32, 'Sensor Turbidez'));
-    faces.push(...this.cylinder(-100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#ffcc00', 32, 'Sensor TDS'));
-    faces.push(...this.cylinder(100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#ffbb00', 32, 'Sensor Nivel'));
+    // SENSORES
+    faces.push(...this.cylinder(-100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#FFD700', 32, 'Sensor pH'));
+    faces.push(...this.cylinder(100 * S, 30 * S, -100 * S, 22 * S, 85 * S, '#FFD700', 32, 'Sensor Turbidez'));
+    faces.push(...this.cylinder(-100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#FFD700', 32, 'Sensor TDS'));
+    faces.push(...this.cylinder(100 * S, -30 * S, 100 * S, 22 * S, 85 * S, '#FFD700', 32, 'Sensor Nivel'));
 
-    // TUBERÍAS - Pipes
+    // TUBERÍAS
     faces.push(...this.cylinder(0, 220 * S, 0, 10 * S, 85 * S, '#8B5E3C', 20, 'Tubería Principal'));
     faces.push(...this.cylinder(-80 * S, 80 * S, 0, 8 * S, 40 * S, '#9d6e3d', 16, 'Tubería Auxiliar Izq'));
     faces.push(...this.cylinder(80 * S, 80 * S, 0, 8 * S, 40 * S, '#9d6e3d', 16, 'Tubería Auxiliar Der'));
 
-    // ELECTRÓNICA - Electronics
-    faces.push(...this.box(0, -230 * S, 0, 450 * S, 120 * S, 350 * S, '#999999', 0.9, 'Zona Electrónica'));
-    faces.push(...this.box(-100 * S, -230 * S, -80 * S, 50 * S, 30 * S, 80 * S, '#1a1a1a', 1, 'Microcontrolador ESP32'));
+    // ELECTRÓNICA
+    faces.push(...this.box(0, -230 * S, 0, 450 * S, 120 * S, 350 * S, '#4CAF50', 0.9, 'Zona Electrónica'));
+    faces.push(...this.box(-100 * S, -230 * S, -80 * S, 50 * S, 30 * S, 80 * S, '#003D7A', 1, 'Microcontrolador ESP32'));
     faces.push(...this.box(80 * S, -230 * S, 80 * S, 80 * S, 50 * S, 60 * S, '#8B3A3A', 1, 'Batería 12V'));
 
     // ANTENA
     faces.push(...this.cylinder(-200 * S, -310 * S, -150 * S, 5 * S, 160 * S, '#C0C0C0', 16, 'Antena WiFi'));
 
     // LEDs
-    const ledColors = ['#E05252', '#ffbb00', '#ffcc00', '#4A90E2'];
+    const ledColors = ['#FFD700', '#FFD700', '#FFD700', '#0066CC'];
     const ledNames = ['LED pH', 'LED Turbidez', 'LED TDS', 'LED WiFi'];
     const ledPos = [[-80, -80], [-30, -80], [-80, 80], [-30, 80]];
     ledPos.forEach(([lx, lz], i) => {
@@ -426,7 +470,7 @@ class Visualizer3D {
     });
 
     // LÍNEA DE FLOTACIÓN
-    faces.push(...this.box(0, -60 * S, 0, 455 * S, 4 * S, 355 * S, '#1a6bb5', 0.4, 'Línea de Flotación'));
+    faces.push(...this.box(0, -60 * S, 0, 455 * S, 4 * S, 355 * S, '#4CAF50', 0.4, 'Línea de Flotación'));
 
     return faces;
   }
@@ -434,12 +478,31 @@ class Visualizer3D {
   render() {
     this.clickableParts = [];
 
-    // Fondo responsivo
-    const grad = this.ctx.createLinearGradient(0, 0, 0, this.H);
-    grad.addColorStop(0, 'rgba(240,245,250,1)');
-    grad.addColorStop(1, 'rgba(250,250,250,1)');
-    this.ctx.fillStyle = grad;
-    this.ctx.fillRect(0, 0, this.W, this.H);
+    // Fondo - Simulador o Normal
+    if (this.simulatorMode) {
+      // Simulación en reserva - Agua y naturaleza
+      const grad = this.ctx.createLinearGradient(0, 0, 0, this.H);
+      grad.addColorStop(0, 'rgba(135, 206, 235, 0.8)'); // Cielo azul
+      grad.addColorStop(0.5, 'rgba(100, 180, 200, 0.7)'); // Transición
+      grad.addColorStop(1, 'rgba(60, 140, 160, 0.9)'); // Agua
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.W, this.H);
+
+      // Línea de agua
+      this.ctx.strokeStyle = 'rgba(100, 160, 200, 0.5)';
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, this.H * 0.6);
+      this.ctx.lineTo(this.W, this.H * 0.6);
+      this.ctx.stroke();
+    } else {
+      // Modo normal - Fondo neutro
+      const grad = this.ctx.createLinearGradient(0, 0, 0, this.H);
+      grad.addColorStop(0, 'rgba(240, 245, 250, 1)');
+      grad.addColorStop(1, 'rgba(250, 250, 250, 1)');
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, this.W, this.H);
+    }
 
     if (this.viewAnimating) {
       const dx = this.viewTarget.rx - this.rotX;
@@ -453,7 +516,6 @@ class Visualizer3D {
       this.rotY += 0.003;
     }
 
-    // NUEVA: Actualizar animación
     if (this.animating) {
       this.animationProgress += 0.05;
       if (this.animationProgress >= 1) {
@@ -476,7 +538,7 @@ class Visualizer3D {
 
     if (this.hoveredPart) {
       this.ctx.save();
-      this.ctx.strokeStyle = 'rgba(255,200,0,0.9)';
+      this.ctx.strokeStyle = 'rgba(0, 102, 204, 0.9)';
       this.ctx.lineWidth = 3;
       this.ctx.beginPath();
       this.ctx.moveTo(this.hoveredPart.pts[0].sx, this.hoveredPart.pts[0].sy);
@@ -488,24 +550,13 @@ class Visualizer3D {
       this.ctx.restore();
     }
 
-    this.ctx.font = '14px var(--font-sans)';
-    this.ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    const labels = [
-      { x: 0, y: -230, z: 0, text: 'Electrónica', sz: 13 },
-      { x: 0, y: 60, z: 0, text: 'Sensores', sz: 13 },
-      { x: 0, y: 280, z: 0, text: 'Icopor', sz: 12 },
-    ];
-    labels.forEach(lb => {
-      const p = this.project(lb.x * this.S, lb.y * this.S, lb.z * this.S);
-      this.ctx.font = lb.sz + 'px var(--font-sans)';
+    // Etiqueta explosionada
+    if (this.explodedMode) {
+      this.ctx.fillStyle = 'rgba(0, 102, 204, 0.7)';
+      this.ctx.font = 'bold 14px sans-serif';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText(lb.text, p.sx, p.sy + 4);
-    });
-
-    this.ctx.fillStyle = 'rgba(26,107,181,0.7)';
-    this.ctx.font = '11px var(--font-sans)';
-    this.ctx.textAlign = 'right';
-    this.ctx.fillText('Draft: 16.1 cm', this.W - 30, 40);
+      this.ctx.fillText('VISTA EXPLOSIONADA', this.W / 2, 30);
+    }
   }
 
   startRenderLoop() {
@@ -516,10 +567,10 @@ class Visualizer3D {
     requestAnimationFrame(loop);
   }
 
-  // NUEVA: Función para seleccionar y animar
   selectPart(partName) {
     this.selectedPart = null;
-    for (let face of this.buildScene()) {
+    const faces = this.buildScene();
+    for (let face of faces) {
       if (face && face.name === partName) {
         this.selectedPart = face;
         break;
@@ -529,16 +580,6 @@ class Visualizer3D {
     if (this.selectedPart) {
       this.animating = true;
       this.animationProgress = 0;
-      
-      // Animar rotación hacia la parte
-      const avgPt = this.selectedPart.pts.reduce((a, p) => ({
-        sx: a.sx + p.sx,
-        sy: a.sy + p.sy
-      }), { sx: 0, sy: 0 });
-      avgPt.sx /= this.selectedPart.pts.length;
-      avgPt.sy /= this.selectedPart.pts.length;
-      
-      // Rotar ligeramente hacia la parte
       this.rotY += Math.random() * 0.1 - 0.05;
     }
   }
@@ -552,7 +593,6 @@ function closeSplash() {
   }
 }
 
-// Mapa de categorías para botones
 const componentCategories = {
   'Flotador Izquierdo': 'btn-floaters',
   'Flotador Central': 'btn-floaters',
@@ -605,7 +645,6 @@ function createComponentsGrid() {
         infoBar.textContent = `✓ ${component}`;
       }
       
-      // NUEVA: Seleccionar parte en el modelo y animar
       if (window.visualizer) {
         window.visualizer.selectPart(component);
       }
@@ -619,7 +658,6 @@ function createComponentsGrid() {
   });
 }
 
-// Inicializar
 let visualizer;
 
 document.addEventListener('DOMContentLoaded', () => {
