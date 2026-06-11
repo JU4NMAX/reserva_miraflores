@@ -3,30 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Monitoreo Hídrico Flotante - Visualizador 3D HD</title>
+  <title>IECM - Sistema de Monitoreo Hídrico Flotante</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- LOGOS -->
-  <div class="logo-stem">STEM 🧬</div>
+  <!-- LOGOS / ESPACIOS PARA IMÁGENES -->
+  <div class="logo-container logo-left">
+    <img id="logoLeft" src="" alt="Logo 1" class="logo-img">
+    <div class="logo-placeholder">Logo 1</div>
+  </div>
+  
   <div class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar tema">🌙</div>
-  <div class="logo-project">
-    <div class="logo-text">Monitoreo<br>Hídrico</div>
+  
+  <div class="logo-container logo-right">
+    <img id="logoRight" src="" alt="Logo 2" class="logo-img">
+    <div class="logo-placeholder">Logo 2</div>
   </div>
 
   <!-- PRESENTACIÓN INICIAL -->
   <div id="splash" class="splash-screen">
     <div class="splash-content">
       <h1>🌊 Sistema de Monitoreo Hídrico Flotante</h1>
-      <p class="splash-subtitle">Visualizador 3D Interactivo HD</p>
+      <p class="splash-subtitle">IECM - Reserva Miraflores</p>
       <div class="splash-description">
-        <p>Explora los componentes del sistema flotante de monitoreo de calidad de agua para la Reserva Miraflores.</p>
-        <p><strong>Cómo usar:</strong></p>
+        <p>Visualizador 3D interactivo para el monitoreo de calidad de agua.</p>
+        <p><strong>Características:</strong></p>
         <ul>
           <li>✓ Haz clic en los botones de componentes</li>
           <li>✓ Escucha la narración automática</li>
-          <li>✓ Rota el modelo con el mouse</li>
-          <li>✓ Zoom con la rueda</li>
+          <li>✓ Vista explosionada para ver estructura interna</li>
+          <li>✓ Modo simulación en la reserva</li>
         </ul>
       </div>
       <button class="splash-button" onclick="closeSplash()">Comenzar →</button>
@@ -36,12 +42,8 @@
   <div id="app" class="main-container">
     <!-- HEADER -->
     <header class="header">
-      <div class="header-content">
-        <div>
-          <h1>🔬 Visualizador 3D HD</h1>
-          <p class="subtitle">Sistema de Monitoreo Hídrico Flotante • Reserva Miraflores</p>
-        </div>
-      </div>
+      <h1>🤖 IECM Visualizador 3D HD</h1>
+      <p class="subtitle">Sistema de Monitoreo Hídrico Flotante • Reserva Miraflores</p>
     </header>
 
     <!-- CONTROLES PRINCIPALES -->
@@ -52,7 +54,9 @@
         <button class="btn btn-view" data-view="top">⬅ Superior</button>
         <button class="btn btn-view" data-view="side">⬅ Lateral</button>
         <button class="btn btn-view" data-view="rotate">🔄 Auto-rotar</button>
-        <button class="btn btn-view" id="lightToggle">💡 Iluminación</button>
+        <button class="btn" id="lightToggle">💡 Iluminación</button>
+        <button class="btn" id="explodeToggle">💥 Explosionada</button>
+        <button class="btn" id="simulatorToggle">🏞️ Simulador</button>
       </div>
       <div class="info-bar" id="infobar">← Selecciona una parte haciendo clic en los botones abajo</div>
     </div>
@@ -72,11 +76,11 @@
     <div class="info-footer">
       <div class="legend">
         <strong>Leyenda por Categoría:</strong>
-        <div class="leg-item"><div class="leg-dot" style="background:#0088ff;"></div>Flotadores</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#ffbb00;"></div>Sensores</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#999;"></div>Electrónica</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#0066CC;"></div>Flotadores</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#FFD700;"></div>Sensores</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#4CAF50;"></div>Electrónica</div>
         <div class="leg-item"><div class="leg-dot" style="background:#8B5E3C;"></div>Tuberías</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#666;"></div>Anclaje</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#003D7A;"></div>Anclaje</div>
       </div>
       <div class="specs">
         <strong>Especificaciones:</strong>
