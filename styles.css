@@ -1,12 +1,12 @@
 :root {
   /* COLORES IECM - TEMA OSCURO (por defecto) */
-  --color-primary: #003A70;      /* Azul marino IECM */
-  --color-secondary: #0066CC;    /* Azul IECM */
-  --color-accent: #FFD700;       /* Amarillo IECM */
-  --color-green: #3DA858;        /* Verde IECM */
-  --color-bg-primary: #0a1428;   /* Oscuro base */
-  --color-bg-secondary: #1a2332; /* Oscuro secundario */
-  --color-bg-tertiary: #2a3342;  /* Oscuro terciario */
+  --color-primary: #003A70;
+  --color-secondary: #0066CC;
+  --color-accent: #FFD700;
+  --color-green: #3DA858;
+  --color-bg-primary: #0a1428;
+  --color-bg-secondary: #1a2332;
+  --color-bg-tertiary: #2a3342;
   --color-text-primary: #f1f5f9;
   --color-text-secondary: #cbd5e1;
   --color-border: #475569;
@@ -37,14 +37,44 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* MODO SIMULADOR - Fondo Reserva */
+/* MODO SIMULADOR - MEJORA: Naturaleza realista con quebrada */
 body.simulator-mode {
-  background: linear-gradient(180deg, 
-    #87CEEB 0%,      /* Sky blue */
-    #5DADE2 40%,     /* Water blue */
-    #3D9970 60%,     /* Water with algae */
-    #2d6a4f 100%     /* Deep water */
+  background: linear-gradient(180deg,
+    #87CEEB 0%,           /* Cielo azul claro */
+    #ADD8E6 15%,          /* Cielo más claro */
+    #E0F6FF 25%,          /* Nubes blancas simuladas */
+    #87CEEB 35%,          /* Cielo nuevamente */
+    #5DADE2 50%,          /* Agua azul clara */
+    #4A9ECB 60%,          /* Agua más profunda */
+    #2d7a4f 75%,          /* Rocas y algas verdes */
+    #1b4d2e 100%          /* Fondo profundo */
   );
+  position: relative;
+}
+
+/* Efecto de agua ondulada en simulador */
+body.simulator-mode::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 10px,
+    rgba(255, 255, 255, 0.03) 10px,
+    rgba(255, 255, 255, 0.03) 20px
+  );
+  animation: wave 4s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes wave {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(20px); }
 }
 
 /* LOGOS - ESPACIOS PARA IMÁGENES */
@@ -409,15 +439,27 @@ body.simulator-mode {
   gap: 8px;
   font-size: 12px;
   color: var(--color-text-secondary);
+  font-weight: 500;
 }
 
+/* COLORES LEYENDA - MÁS VIBRANTES Y LLAMATIVOS */
 .leg-dot {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 3px;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
+
+/* Colores vibrantes por categoría */
+.leg-item:nth-child(2) .leg-dot { background: #0088FF; } /* Azul vibrante */
+.leg-item:nth-child(3) .leg-dot { background: #FF3366; } /* Rojo/Magenta vibrante */
+.leg-item:nth-child(4) .leg-dot { background: #00CC44; } /* Verde vibrante */
+.leg-item:nth-child(5) .leg-dot { background: #FFAA00; } /* Naranja vibrante */
+.leg-item:nth-child(6) .leg-dot { background: #FF6600; } /* Naranja oscuro */
+.leg-item:nth-child(7) .leg-dot { background: #FF00FF; } /* Magenta vibrante */
+.leg-item:nth-child(8) .leg-dot { background: #8B5E3C; } /* Marrón */
 
 .specs {
   background: var(--color-bg-secondary);
