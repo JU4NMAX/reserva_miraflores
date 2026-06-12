@@ -1,5 +1,5 @@
 :root {
-  /* COLORES IECM - TEMA OSCURO (por defecto */
+  /* COLORES IECM - TEMA OSCURO (por defecto) */
   --color-primary: #003A70;
   --color-secondary: #0066CC;
   --color-accent: #FFD700;
@@ -37,7 +37,7 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* MODO SIMULADOR - MEJORA: Naturaleza realista con quebrada */
+/* MODO SIMULADOR - Naturaleza realista con quebrada */
 body.simulator-mode {
   background: linear-gradient(180deg,
     #87CEEB 0%,           /* Cielo azul claro */
@@ -77,17 +77,23 @@ body.simulator-mode::before {
   100% { transform: translateX(20px); }
 }
 
-/* LOGOS - ESPACIOS PARA IMÁGENES */
+/* LOGOS - RELLENO COMPLETO, SIN TÍTULOS */
 .logo-left {
   position: fixed;
   top: 15px;
   left: 15px;
   z-index: 100;
+  width: 70px;
+  height: 70px;
   background: rgba(255, 255, 255, 0.1);
-  padding: 8px;
+  padding: 0;
   border-radius: 8px;
   border: 2px solid var(--color-secondary);
   backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .logo-right {
@@ -95,25 +101,24 @@ body.simulator-mode::before {
   top: 15px;
   right: 15px;
   z-index: 100;
+  width: 70px;
+  height: 70px;
   background: rgba(255, 255, 255, 0.1);
-  padding: 8px;
+  padding: 0;
   border-radius: 8px;
   border: 2px solid var(--color-secondary);
   backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .logo-img {
-  width: 60px;
-  height: 60px;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
-}
-
-.logo-label {
-  font-size: 10px;
-  text-align: center;
-  margin-top: 4px;
-  color: var(--color-text-secondary);
 }
 
 /* TOP CONTROLS */
@@ -292,6 +297,7 @@ body.simulator-mode::before {
   transition: all 0.2s ease;
   font-family: var(--font-sans);
   font-weight: 500;
+  touch-action: manipulation;
 }
 
 .btn:hover {
@@ -348,6 +354,7 @@ body.simulator-mode::before {
   background: linear-gradient(135deg, rgba(0, 58, 112, 0.3) 0%, rgba(10, 20, 40, 0.3) 100%);
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 102, 204, 0.2);
+  touch-action: none;
 }
 
 .canvas-3d.highlighted {
@@ -394,6 +401,7 @@ body.simulator-mode::before {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  touch-action: manipulation;
 }
 
 .component-btn:hover {
@@ -442,24 +450,14 @@ body.simulator-mode::before {
   font-weight: 500;
 }
 
-/* COLORES LEYENDA - MÁS VIBRANTES Y LLAMATIVOS */
 .leg-dot {
   width: 14px;
   height: 14px;
   border-radius: 3px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
-
-/* Colores vibrantes por categoría */
-.leg-item:nth-child(2) .leg-dot { background: #0088FF; } /* Azul vibrante */
-.leg-item:nth-child(3) .leg-dot { background: #FF3366; } /* Rojo/Magenta vibrante */
-.leg-item:nth-child(4) .leg-dot { background: #00CC44; } /* Verde vibrante */
-.leg-item:nth-child(5) .leg-dot { background: #FFAA00; } /* Naranja vibrante */
-.leg-item:nth-child(6) .leg-dot { background: #FF6600; } /* Naranja oscuro */
-.leg-item:nth-child(7) .leg-dot { background: #FF00FF; } /* Magenta vibrante */
-.leg-item:nth-child(8) .leg-dot { background: #8B5E3C; } /* Marrón */
 
 .specs {
   background: var(--color-bg-secondary);
@@ -481,37 +479,119 @@ body.simulator-mode::before {
   line-height: 1.6;
 }
 
-/* RESPONSIVE */
+/* RESPONSIVE - TABLET */
 @media (max-width: 1024px) {
   .main-container { padding-top: 80px; }
   .header h1 { font-size: 28px; }
   .components-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
   .info-footer { grid-template-columns: 1fr; }
-  .logo-img { width: 50px; height: 50px; }
+  .logo-left, .logo-right { width: 60px; height: 60px; }
 }
 
+/* RESPONSIVE - MOBILE */
 @media (max-width: 768px) {
-  .main-container { padding: 10px; padding-top: 70px; }
-  .logo-left, .logo-right { width: 70px; padding: 6px; }
-  .logo-img { width: 50px; height: 50px; }
-  .top-controls { gap: 8px; }
-  .theme-toggle, .simulator-toggle { padding: 6px 10px; font-size: 12px; }
-  .header { margin-bottom: 15px; padding: 15px; }
-  .header h1 { font-size: 20px; }
-  .controls { gap: 6px; justify-content: flex-start; overflow-x: auto; }
-  .btn { padding: 8px 12px; font-size: 11px; flex-shrink: 0; }
-  .components-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
-  .component-btn { padding: 10px 10px; font-size: 11px; }
-  .legend { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); padding: 15px; }
+  .main-container { 
+    padding: 10px; 
+    padding-top: 70px; 
+  }
+
+  .logo-left, .logo-right { 
+    width: 55px; 
+    height: 55px;
+    border: 1.5px solid var(--color-secondary);
+  }
+
+  .top-controls { 
+    gap: 6px; 
+  }
+
+  .theme-toggle, .simulator-toggle { 
+    padding: 6px 10px; 
+    font-size: 12px; 
+  }
+
+  .header { 
+    margin-bottom: 15px; 
+    padding: 15px; 
+  }
+
+  .header h1 { 
+    font-size: 20px; 
+  }
+
+  .controls { 
+    gap: 6px; 
+    justify-content: flex-start; 
+    overflow-x: auto; 
+  }
+
+  .btn { 
+    padding: 8px 12px; 
+    font-size: 11px; 
+    flex-shrink: 0; 
+  }
+
+  .components-grid { 
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+  }
+
+  .component-btn { 
+    padding: 10px 10px; 
+    font-size: 11px; 
+  }
+
+  .legend { 
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+    padding: 15px; 
+  }
+
+  .specs {
+    padding: 15px;
+  }
 }
 
+/* RESPONSIVE - MÓVIL PEQUEÑO */
 @media (max-width: 480px) {
-  .main-container { padding: 8px; padding-top: 60px; }
-  .logo-left { left: 8px; }
-  .logo-right { right: 8px; }
-  .logo-img { width: 40px; height: 40px; }
-  .header h1 { font-size: 18px; }
-  .controls { flex-direction: column; gap: 5px; }
-  .btn { width: 100%; }
-  .info-footer { gap: 10px; }
+  .main-container { 
+    padding: 8px; 
+    padding-top: 60px; 
+  }
+
+  .logo-left { 
+    left: 8px; 
+    width: 50px;
+    height: 50px;
+  }
+
+  .logo-right { 
+    right: 8px; 
+    width: 50px;
+    height: 50px;
+  }
+
+  .header h1 { 
+    font-size: 18px; 
+  }
+
+  .controls { 
+    flex-direction: column; 
+    gap: 5px; 
+  }
+
+  .btn { 
+    width: 100%; 
+  }
+
+  .info-footer { 
+    gap: 10px; 
+  }
+
+  .legend {
+    grid-template-columns: 1fr 1fr;
+    padding: 10px;
+  }
+
+  .specs {
+    padding: 10px;
+  }
 }
